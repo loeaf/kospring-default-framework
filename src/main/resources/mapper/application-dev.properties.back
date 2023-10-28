@@ -1,0 +1,12 @@
+# application.properties
+spring.datasource.url=jdbc:postgresql://1.234.5.209:5433/imsi
+spring.datasource.username=postgres
+spring.datasource.password=vaiv!@34
+spring.datasource.driver-class-name=org.postgresql.Driver
+
+spring.jpa.hibernate.ddl-auto=update
+spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.PostgreSQLDialect
+
+# MyBatis ??
+mybatis.config-location=classpath:mapper/mybatis-config.xml
+mybatis.mapper-locations=classpath:mapper/postgres/**/*.xml
