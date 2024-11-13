@@ -1,0 +1,60 @@
+package com.service.frame.rstmeet.model;
+
+import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.service.frame.common.domain.Domain;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.util.Date;
+
+@Data
+@Entity(name = "Menu")
+@AllArgsConstructor
+@NoArgsConstructor
+public class Menu extends Domain {
+
+    // 메뉴이름
+    @Column
+    private String name;
+
+    // 메뉴량
+    @Column
+    private String menuAmount;
+
+    // 메뉴가격
+    @Column
+    private String price;
+
+    // 메뉴사진
+    @Column
+    private String photoUrl;
+
+    // 메뉴설명
+    @Column
+    private String description;
+
+    // 메뉴종류
+    @ManyToOne
+    @JoinColumn(referencedColumnName = "id")
+    @JsonBackReference
+    private CmmnCode menuType;
+
+    // 등록일
+    @Column
+    private Date regDate;
+
+    // 대표메뉴여부
+    @Column
+    private String isMain;
+
+    @ManyToOne
+    @JoinColumn(referencedColumnName = "id")
+    @JsonBackReference
+    private Restaurant restaurant;
+
+}

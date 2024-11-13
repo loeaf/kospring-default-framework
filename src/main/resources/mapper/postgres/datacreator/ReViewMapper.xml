@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.service.frame.datacreator.mapper.ReViewMapper">
+  <resultMap id="BaseResultMap" type="com.service.frame.datacreator.model.ReView">
+    <!--@mbg.generated-->
+    <!--@Table re_view-->
+    <id column="id" jdbcType="VARCHAR" property="id" />
+    <result column="content" jdbcType="VARCHAR" property="content" />
+    <result column="is_main" jdbcType="VARCHAR" property="isMain" />
+    <result column="reg_date" jdbcType="TIMESTAMP" property="regDate" />
+    <result column="restaurant_id" jdbcType="VARCHAR" property="restaurantId" />
+    <result column="writer_id" jdbcType="VARCHAR" property="writerId" />
+  </resultMap>
+  <sql id="Base_Column_List">
+    <!--@mbg.generated-->
+    id, content, is_main, reg_date, restaurant_id, writer_id
+  </sql>
+  <select id="selectByPrimaryKey" parameterType="java.lang.String" resultMap="BaseResultMap">
+    <!--@mbg.generated-->
+    select 
+    <include refid="Base_Column_List" />
+    from re_view
+    where id = #{id,jdbcType=VARCHAR}
+  </select>
+  <delete id="deleteByPrimaryKey" parameterType="java.lang.String">
+    <!--@mbg.generated-->
+    delete from re_view
+    where id = #{id,jdbcType=VARCHAR}
+  </delete>
+  <insert id="insert" parameterType="com.service.frame.datacreator.model.ReView">
+    <!--@mbg.generated-->
+    insert into re_view (id, content, is_main, 
+      reg_date, restaurant_id, writer_id
+      )
+    values (#{id,jdbcType=VARCHAR}, #{content,jdbcType=VARCHAR}, #{isMain,jdbcType=VARCHAR}, 
+      #{regDate,jdbcType=TIMESTAMP}, #{restaurantId,jdbcType=VARCHAR}, #{writerId,jdbcType=VARCHAR}
+      )
+  </insert>
+  <insert id="insertSelective" parameterType="com.service.frame.datacreator.model.ReView">
+    <!--@mbg.generated-->
+    insert into re_view
+    <trim prefix="(" suffix=")" suffixOverrides=",">
+      <if test="id != null">
+        id,
+      </if>
+      <if test="content != null">
+        content,
+      </if>
+      <if test="isMain != null">
+        is_main,
+      </if>
+      <if test="regDate != null">
+        reg_date,
+      </if>
+      <if test="restaurantId != null">
+        restaurant_id,
+      </if>
+      <if test="writerId != null">
+        writer_id,
+      </if>
+    </trim>
+    <trim prefix="values (" suffix=")" suffixOverrides=",">
+      <if test="id != null">
+        #{id,jdbcType=VARCHAR},
+      </if>
+      <if test="content != null">
+        #{content,jdbcType=VARCHAR},
+      </if>
+      <if test="isMain != null">
+        #{isMain,jdbcType=VARCHAR},
+      </if>
+      <if test="regDate != null">
+        #{regDate,jdbcType=TIMESTAMP},
+      </if>
+      <if test="restaurantId != null">
+        #{restaurantId,jdbcType=VARCHAR},
+      </if>
+      <if test="writerId != null">
+        #{writerId,jdbcType=VARCHAR},
+      </if>
+    </trim>
+  </insert>
+  <update id="updateByPrimaryKeySelective" parameterType="com.service.frame.datacreator.model.ReView">
+    <!--@mbg.generated-->
+    update re_view
+    <set>
+      <if test="content != null">
+        content = #{content,jdbcType=VARCHAR},
+      </if>
+      <if test="isMain != null">
+        is_main = #{isMain,jdbcType=VARCHAR},
+      </if>
+      <if test="regDate != null">
+        reg_date = #{regDate,jdbcType=TIMESTAMP},
+      </if>
+      <if test="restaurantId != null">
+        restaurant_id = #{restaurantId,jdbcType=VARCHAR},
+      </if>
+      <if test="writerId != null">
+        writer_id = #{writerId,jdbcType=VARCHAR},
+      </if>
+    </set>
+    where id = #{id,jdbcType=VARCHAR}
+  </update>
+  <update id="updateByPrimaryKey" parameterType="com.service.frame.datacreator.model.ReView">
+    <!--@mbg.generated-->
+    update re_view
+    set content = #{content,jdbcType=VARCHAR},
+      is_main = #{isMain,jdbcType=VARCHAR},
+      reg_date = #{regDate,jdbcType=TIMESTAMP},
+      restaurant_id = #{restaurantId,jdbcType=VARCHAR},
+      writer_id = #{writerId,jdbcType=VARCHAR}
+    where id = #{id,jdbcType=VARCHAR}
+  </update>
+</mapper>

@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.service.frame.datacreator.mapper.InstaMediaMapper">
+  <resultMap id="BaseResultMap" type="com.service.frame.datacreator.model.InstaMedia">
+    <!--@mbg.generated-->
+    <!--@Table insta_media-->
+    <id column="id" jdbcType="VARCHAR" property="id" />
+    <result column="filename" jdbcType="VARCHAR" property="filename" />
+    <result column="insta_info_id" jdbcType="VARCHAR" property="instaInfoId" />
+  </resultMap>
+  <sql id="Base_Column_List">
+    <!--@mbg.generated-->
+    id, filename, insta_info_id
+  </sql>
+  <select id="selectByPrimaryKey" parameterType="java.lang.String" resultMap="BaseResultMap">
+    <!--@mbg.generated-->
+    select 
+    <include refid="Base_Column_List" />
+    from insta_media
+    where id = #{id,jdbcType=VARCHAR}
+  </select>
+  <delete id="deleteByPrimaryKey" parameterType="java.lang.String">
+    <!--@mbg.generated-->
+    delete from insta_media
+    where id = #{id,jdbcType=VARCHAR}
+  </delete>
+  <insert id="insert" parameterType="com.service.frame.datacreator.model.InstaMedia">
+    <!--@mbg.generated-->
+    insert into insta_media (id, filename, insta_info_id
+      )
+    values (#{id,jdbcType=VARCHAR}, #{filename,jdbcType=VARCHAR}, #{instaInfoId,jdbcType=VARCHAR}
+      )
+  </insert>
+  <insert id="insertSelective" parameterType="com.service.frame.datacreator.model.InstaMedia">
+    <!--@mbg.generated-->
+    insert into insta_media
+    <trim prefix="(" suffix=")" suffixOverrides=",">
+      <if test="id != null">
+        id,
+      </if>
+      <if test="filename != null">
+        filename,
+      </if>
+      <if test="instaInfoId != null">
+        insta_info_id,
+      </if>
+    </trim>
+    <trim prefix="values (" suffix=")" suffixOverrides=",">
+      <if test="id != null">
+        #{id,jdbcType=VARCHAR},
+      </if>
+      <if test="filename != null">
+        #{filename,jdbcType=VARCHAR},
+      </if>
+      <if test="instaInfoId != null">
+        #{instaInfoId,jdbcType=VARCHAR},
+      </if>
+    </trim>
+  </insert>
+  <update id="updateByPrimaryKeySelective" parameterType="com.service.frame.datacreator.model.InstaMedia">
+    <!--@mbg.generated-->
+    update insta_media
+    <set>
+      <if test="filename != null">
+        filename = #{filename,jdbcType=VARCHAR},
+      </if>
+      <if test="instaInfoId != null">
+        insta_info_id = #{instaInfoId,jdbcType=VARCHAR},
+      </if>
+    </set>
+    where id = #{id,jdbcType=VARCHAR}
+  </update>
+  <update id="updateByPrimaryKey" parameterType="com.service.frame.datacreator.model.InstaMedia">
+    <!--@mbg.generated-->
+    update insta_media
+    set filename = #{filename,jdbcType=VARCHAR},
+      insta_info_id = #{instaInfoId,jdbcType=VARCHAR}
+    where id = #{id,jdbcType=VARCHAR}
+  </update>
+</mapper>

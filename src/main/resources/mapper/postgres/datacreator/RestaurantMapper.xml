@@ -1,0 +1,328 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.service.frame.datacreator.mapper.RestaurantMapper">
+  <resultMap id="BaseResultMap" type="com.service.frame.datacreator.model.Restaurant">
+    <!--@mbg.generated-->
+    <!--@Table restaurant-->
+    <id column="id" jdbcType="VARCHAR" property="id" />
+    <result column="data_type" jdbcType="VARCHAR" property="dataType" />
+    <result column="english_address" jdbcType="VARCHAR" property="englishAddress" />
+    <result column="holiday" jdbcType="VARCHAR" property="holiday" />
+    <result column="jibun_address" jdbcType="VARCHAR" property="jibunAddress" />
+    <result column="latitude" jdbcType="DOUBLE" property="latitude" />
+    <result column="longitude" jdbcType="DOUBLE" property="longitude" />
+    <result column="mini_address" jdbcType="VARCHAR" property="miniAddress" />
+    <result column="name" jdbcType="VARCHAR" property="name" />
+    <result column="phone_number" jdbcType="VARCHAR" property="phoneNumber" />
+    <result column="reference_url" jdbcType="VARCHAR" property="referenceUrl" />
+    <result column="refined_geo_location" jdbcType="INTEGER" property="refinedGeoLocation" />
+    <result column="reg_date" jdbcType="TIMESTAMP" property="regDate" />
+    <result column="representative_menu" jdbcType="VARCHAR" property="representativeMenu" />
+    <result column="restaurant_number" jdbcType="INTEGER" property="restaurantNumber" />
+    <result column="road_address" jdbcType="VARCHAR" property="roadAddress" />
+    <result column="update_date" jdbcType="TIMESTAMP" property="updateDate" />
+    <result column="city_type_id" jdbcType="VARCHAR" property="cityTypeId" />
+    <result column="country_type_id" jdbcType="VARCHAR" property="countryTypeId" />
+    <result column="food_type_id" jdbcType="VARCHAR" property="foodTypeId" />
+    <result column="insta_info_id" jdbcType="VARCHAR" property="instaInfoId" />
+    <result column="geo_info" jdbcType="OTHER" property="geoInfo" />
+    <result column="google_call_api_url" jdbcType="VARCHAR" property="googleCallApiUrl" />
+    <result column="google_call_data_uuid" jdbcType="VARCHAR" property="googleCallDataUuid" />
+  </resultMap>
+  <sql id="Base_Column_List">
+    <!--@mbg.generated-->
+    id, data_type, english_address, holiday, jibun_address, latitude, longitude, mini_address, 
+    "name", phone_number, reference_url, refined_geo_location, reg_date, representative_menu, 
+    restaurant_number, road_address, update_date, city_type_id, country_type_id, food_type_id, 
+    insta_info_id, geo_info, google_call_api_url, google_call_data_uuid
+  </sql>
+  <select id="selectByPrimaryKey" parameterType="java.lang.String" resultMap="BaseResultMap">
+    <!--@mbg.generated-->
+    select 
+    <include refid="Base_Column_List" />
+    from restaurant
+    where id = #{id,jdbcType=VARCHAR}
+  </select>
+  <delete id="deleteByPrimaryKey" parameterType="java.lang.String">
+    <!--@mbg.generated-->
+    delete from restaurant
+    where id = #{id,jdbcType=VARCHAR}
+  </delete>
+  <insert id="insert" parameterType="com.service.frame.datacreator.model.Restaurant">
+    <!--@mbg.generated-->
+    insert into restaurant (id, data_type, english_address, 
+      holiday, jibun_address, latitude, 
+      longitude, mini_address, "name", 
+      phone_number, reference_url, refined_geo_location, 
+      reg_date, representative_menu, restaurant_number, 
+      road_address, update_date, city_type_id, 
+      country_type_id, food_type_id, insta_info_id, 
+      geo_info, google_call_api_url, google_call_data_uuid
+      )
+    values (#{id,jdbcType=VARCHAR}, #{dataType,jdbcType=VARCHAR}, #{englishAddress,jdbcType=VARCHAR}, 
+      #{holiday,jdbcType=VARCHAR}, #{jibunAddress,jdbcType=VARCHAR}, #{latitude,jdbcType=DOUBLE}, 
+      #{longitude,jdbcType=DOUBLE}, #{miniAddress,jdbcType=VARCHAR}, #{name,jdbcType=VARCHAR}, 
+      #{phoneNumber,jdbcType=VARCHAR}, #{referenceUrl,jdbcType=VARCHAR}, #{refinedGeoLocation,jdbcType=INTEGER}, 
+      #{regDate,jdbcType=TIMESTAMP}, #{representativeMenu,jdbcType=VARCHAR}, #{restaurantNumber,jdbcType=INTEGER}, 
+      #{roadAddress,jdbcType=VARCHAR}, #{updateDate,jdbcType=TIMESTAMP}, #{cityTypeId,jdbcType=VARCHAR}, 
+      #{countryTypeId,jdbcType=VARCHAR}, #{foodTypeId,jdbcType=VARCHAR}, #{instaInfoId,jdbcType=VARCHAR}, 
+      #{geoInfo,jdbcType=OTHER}, #{googleCallApiUrl,jdbcType=VARCHAR}, #{googleCallDataUuid,jdbcType=VARCHAR}
+      )
+  </insert>
+  <insert id="insertSelective" parameterType="com.service.frame.datacreator.model.Restaurant">
+    <!--@mbg.generated-->
+    insert into restaurant
+    <trim prefix="(" suffix=")" suffixOverrides=",">
+      <if test="id != null">
+        id,
+      </if>
+      <if test="dataType != null">
+        data_type,
+      </if>
+      <if test="englishAddress != null">
+        english_address,
+      </if>
+      <if test="holiday != null">
+        holiday,
+      </if>
+      <if test="jibunAddress != null">
+        jibun_address,
+      </if>
+      <if test="latitude != null">
+        latitude,
+      </if>
+      <if test="longitude != null">
+        longitude,
+      </if>
+      <if test="miniAddress != null">
+        mini_address,
+      </if>
+      <if test="name != null">
+        "name",
+      </if>
+      <if test="phoneNumber != null">
+        phone_number,
+      </if>
+      <if test="referenceUrl != null">
+        reference_url,
+      </if>
+      <if test="refinedGeoLocation != null">
+        refined_geo_location,
+      </if>
+      <if test="regDate != null">
+        reg_date,
+      </if>
+      <if test="representativeMenu != null">
+        representative_menu,
+      </if>
+      <if test="restaurantNumber != null">
+        restaurant_number,
+      </if>
+      <if test="roadAddress != null">
+        road_address,
+      </if>
+      <if test="updateDate != null">
+        update_date,
+      </if>
+      <if test="cityTypeId != null">
+        city_type_id,
+      </if>
+      <if test="countryTypeId != null">
+        country_type_id,
+      </if>
+      <if test="foodTypeId != null">
+        food_type_id,
+      </if>
+      <if test="instaInfoId != null">
+        insta_info_id,
+      </if>
+      <if test="geoInfo != null">
+        geo_info,
+      </if>
+      <if test="googleCallApiUrl != null">
+        google_call_api_url,
+      </if>
+      <if test="googleCallDataUuid != null">
+        google_call_data_uuid,
+      </if>
+    </trim>
+    <trim prefix="values (" suffix=")" suffixOverrides=",">
+      <if test="id != null">
+        #{id,jdbcType=VARCHAR},
+      </if>
+      <if test="dataType != null">
+        #{dataType,jdbcType=VARCHAR},
+      </if>
+      <if test="englishAddress != null">
+        #{englishAddress,jdbcType=VARCHAR},
+      </if>
+      <if test="holiday != null">
+        #{holiday,jdbcType=VARCHAR},
+      </if>
+      <if test="jibunAddress != null">
+        #{jibunAddress,jdbcType=VARCHAR},
+      </if>
+      <if test="latitude != null">
+        #{latitude,jdbcType=DOUBLE},
+      </if>
+      <if test="longitude != null">
+        #{longitude,jdbcType=DOUBLE},
+      </if>
+      <if test="miniAddress != null">
+        #{miniAddress,jdbcType=VARCHAR},
+      </if>
+      <if test="name != null">
+        #{name,jdbcType=VARCHAR},
+      </if>
+      <if test="phoneNumber != null">
+        #{phoneNumber,jdbcType=VARCHAR},
+      </if>
+      <if test="referenceUrl != null">
+        #{referenceUrl,jdbcType=VARCHAR},
+      </if>
+      <if test="refinedGeoLocation != null">
+        #{refinedGeoLocation,jdbcType=INTEGER},
+      </if>
+      <if test="regDate != null">
+        #{regDate,jdbcType=TIMESTAMP},
+      </if>
+      <if test="representativeMenu != null">
+        #{representativeMenu,jdbcType=VARCHAR},
+      </if>
+      <if test="restaurantNumber != null">
+        #{restaurantNumber,jdbcType=INTEGER},
+      </if>
+      <if test="roadAddress != null">
+        #{roadAddress,jdbcType=VARCHAR},
+      </if>
+      <if test="updateDate != null">
+        #{updateDate,jdbcType=TIMESTAMP},
+      </if>
+      <if test="cityTypeId != null">
+        #{cityTypeId,jdbcType=VARCHAR},
+      </if>
+      <if test="countryTypeId != null">
+        #{countryTypeId,jdbcType=VARCHAR},
+      </if>
+      <if test="foodTypeId != null">
+        #{foodTypeId,jdbcType=VARCHAR},
+      </if>
+      <if test="instaInfoId != null">
+        #{instaInfoId,jdbcType=VARCHAR},
+      </if>
+      <if test="geoInfo != null">
+        #{geoInfo,jdbcType=OTHER},
+      </if>
+      <if test="googleCallApiUrl != null">
+        #{googleCallApiUrl,jdbcType=VARCHAR},
+      </if>
+      <if test="googleCallDataUuid != null">
+        #{googleCallDataUuid,jdbcType=VARCHAR},
+      </if>
+    </trim>
+  </insert>
+  <update id="updateByPrimaryKeySelective" parameterType="com.service.frame.datacreator.model.Restaurant">
+    <!--@mbg.generated-->
+    update restaurant
+    <set>
+      <if test="dataType != null">
+        data_type = #{dataType,jdbcType=VARCHAR},
+      </if>
+      <if test="englishAddress != null">
+        english_address = #{englishAddress,jdbcType=VARCHAR},
+      </if>
+      <if test="holiday != null">
+        holiday = #{holiday,jdbcType=VARCHAR},
+      </if>
+      <if test="jibunAddress != null">
+        jibun_address = #{jibunAddress,jdbcType=VARCHAR},
+      </if>
+      <if test="latitude != null">
+        latitude = #{latitude,jdbcType=DOUBLE},
+      </if>
+      <if test="longitude != null">
+        longitude = #{longitude,jdbcType=DOUBLE},
+      </if>
+      <if test="miniAddress != null">
+        mini_address = #{miniAddress,jdbcType=VARCHAR},
+      </if>
+      <if test="name != null">
+        "name" = #{name,jdbcType=VARCHAR},
+      </if>
+      <if test="phoneNumber != null">
+        phone_number = #{phoneNumber,jdbcType=VARCHAR},
+      </if>
+      <if test="referenceUrl != null">
+        reference_url = #{referenceUrl,jdbcType=VARCHAR},
+      </if>
+      <if test="refinedGeoLocation != null">
+        refined_geo_location = #{refinedGeoLocation,jdbcType=INTEGER},
+      </if>
+      <if test="regDate != null">
+        reg_date = #{regDate,jdbcType=TIMESTAMP},
+      </if>
+      <if test="representativeMenu != null">
+        representative_menu = #{representativeMenu,jdbcType=VARCHAR},
+      </if>
+      <if test="restaurantNumber != null">
+        restaurant_number = #{restaurantNumber,jdbcType=INTEGER},
+      </if>
+      <if test="roadAddress != null">
+        road_address = #{roadAddress,jdbcType=VARCHAR},
+      </if>
+      <if test="updateDate != null">
+        update_date = #{updateDate,jdbcType=TIMESTAMP},
+      </if>
+      <if test="cityTypeId != null">
+        city_type_id = #{cityTypeId,jdbcType=VARCHAR},
+      </if>
+      <if test="countryTypeId != null">
+        country_type_id = #{countryTypeId,jdbcType=VARCHAR},
+      </if>
+      <if test="foodTypeId != null">
+        food_type_id = #{foodTypeId,jdbcType=VARCHAR},
+      </if>
+      <if test="instaInfoId != null">
+        insta_info_id = #{instaInfoId,jdbcType=VARCHAR},
+      </if>
+      <if test="geoInfo != null">
+        geo_info = #{geoInfo,jdbcType=OTHER},
+      </if>
+      <if test="googleCallApiUrl != null">
+        google_call_api_url = #{googleCallApiUrl,jdbcType=VARCHAR},
+      </if>
+      <if test="googleCallDataUuid != null">
+        google_call_data_uuid = #{googleCallDataUuid,jdbcType=VARCHAR},
+      </if>
+    </set>
+    where id = #{id,jdbcType=VARCHAR}
+  </update>
+  <update id="updateByPrimaryKey" parameterType="com.service.frame.datacreator.model.Restaurant">
+    <!--@mbg.generated-->
+    update restaurant
+    set data_type = #{dataType,jdbcType=VARCHAR},
+      english_address = #{englishAddress,jdbcType=VARCHAR},
+      holiday = #{holiday,jdbcType=VARCHAR},
+      jibun_address = #{jibunAddress,jdbcType=VARCHAR},
+      latitude = #{latitude,jdbcType=DOUBLE},
+      longitude = #{longitude,jdbcType=DOUBLE},
+      mini_address = #{miniAddress,jdbcType=VARCHAR},
+      "name" = #{name,jdbcType=VARCHAR},
+      phone_number = #{phoneNumber,jdbcType=VARCHAR},
+      reference_url = #{referenceUrl,jdbcType=VARCHAR},
+      refined_geo_location = #{refinedGeoLocation,jdbcType=INTEGER},
+      reg_date = #{regDate,jdbcType=TIMESTAMP},
+      representative_menu = #{representativeMenu,jdbcType=VARCHAR},
+      restaurant_number = #{restaurantNumber,jdbcType=INTEGER},
+      road_address = #{roadAddress,jdbcType=VARCHAR},
+      update_date = #{updateDate,jdbcType=TIMESTAMP},
+      city_type_id = #{cityTypeId,jdbcType=VARCHAR},
+      country_type_id = #{countryTypeId,jdbcType=VARCHAR},
+      food_type_id = #{foodTypeId,jdbcType=VARCHAR},
+      insta_info_id = #{instaInfoId,jdbcType=VARCHAR},
+      geo_info = #{geoInfo,jdbcType=OTHER},
+      google_call_api_url = #{googleCallApiUrl,jdbcType=VARCHAR},
+      google_call_data_uuid = #{googleCallDataUuid,jdbcType=VARCHAR}
+    where id = #{id,jdbcType=VARCHAR}
+  </update>
+</mapper>

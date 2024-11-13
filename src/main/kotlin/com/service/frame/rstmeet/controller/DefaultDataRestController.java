@@ -1,0 +1,198 @@
+package com.service.frame.rstmeet.controller;
+
+import com.service.frame.rstmeet.model.CmmnCode;
+import com.service.frame.rstmeet.service.*;
+import com.service.frame.rstmeet.type.*;
+import io.swagger.annotations.ApiOperation;
+import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import java.beans.Transient;
+
+@RestController
+@RequestMapping("/DefaultData")
+public class DefaultDataRestController {
+
+    private RestaurantService restaurantService;
+    private ReViewService reViewService;
+    private MenuService menuService;
+    private CmmnCodeService cmmnCodeService;
+    private MediaService mediaService;
+
+    public DefaultDataRestController(RestaurantService service,
+                                     ReViewService reViewService,
+                                     MenuService menuService,
+                                     CmmnCodeService cmmnCodeService,
+                                     MediaService mediaService
+    ) {
+        this.restaurantService = service;
+        this.reViewService = reViewService;
+        this.menuService = menuService;
+        this.cmmnCodeService = cmmnCodeService;
+        this.mediaService = mediaService;
+    }
+    // NATION POST
+    @GetMapping("/NATION")
+    public ResponseEntity<Object> registNation(HttpServletRequest request) throws Exception {
+        CmmnCode cd = new CmmnCode();
+        cd.setId("NATION");
+        cd.setCodeName("NATION");
+        cmmnCodeService.regist(cd);
+        CmmnCode child1 = new CmmnCode();
+        child1.setId(CountryType.일본.getName());
+        child1.setParentCode(cmmnCodeService.findById("NATION"));
+        child1.setCodeName(CountryType.일본.toString());
+        cmmnCodeService.regist(child1);
+        CmmnCode child2 = new CmmnCode();
+        child2.setId(CountryType.한국.getName());
+        child2.setParentCode(cmmnCodeService.findById("NATION"));
+        child2.setCodeName(CountryType.한국.toString());
+        cmmnCodeService.regist(child2);
+        return null;
+    }
+    // NATION POST
+    @GetMapping("/CITYTYPE")
+    @Transient
+    public ResponseEntity<Object> registCity(HttpServletRequest request) throws Exception {
+        CmmnCode child1 = new CmmnCode();
+        child1.setId(CityType.부산.getName());
+        child1.setParentCode(cmmnCodeService.findById(CountryType.한국.getName()));
+        child1.setCodeName(CityType.부산.toString());
+        cmmnCodeService.regist(child1);
+        CmmnCode child2 = new CmmnCode();
+        child2.setId(CityType.서울.getName());
+        child2.setParentCode(cmmnCodeService.findById(CountryType.한국.getName()));
+        child2.setCodeName(CityType.서울.toString());
+        cmmnCodeService.regist(child2);
+        CmmnCode sejong = new CmmnCode();
+        sejong.setId(CityType.세종.getName());
+        sejong.setParentCode(cmmnCodeService.findById(CountryType.한국.getName()));
+        sejong.setCodeName(CityType.세종.toString());
+        cmmnCodeService.regist(sejong);
+        CmmnCode child3 = new CmmnCode();
+        child3.setId(CityType.교토.getName());
+        child3.setParentCode(cmmnCodeService.findById(CountryType.일본.getName()));
+        child3.setCodeName(CityType.교토.toString());
+        cmmnCodeService.regist(child3);
+        CmmnCode child4 = new CmmnCode();
+        child4.setId(CityType.후쿠오카.getName());
+        child4.setParentCode(cmmnCodeService.findById(CountryType.일본.getName()));
+        child4.setCodeName(CityType.후쿠오카.toString());
+        cmmnCodeService.regist(child4);
+        CmmnCode child5 = new CmmnCode();
+        child5.setId(CityType.오사카.getName());
+        child5.setParentCode(cmmnCodeService.findById(CountryType.일본.getName()));
+        child5.setCodeName(CityType.오사카.toString());
+        cmmnCodeService.regist(child5);
+        return null;
+    }
+    // FOODTYPE POST
+    @GetMapping("/FOODTYPE")
+    public ResponseEntity<Object> registFoodType(HttpServletRequest request) throws Exception {
+        CmmnCode cd = new CmmnCode();
+        cd.setId("FOODTYPE");
+        cd.setCodeName("FOODTYPE");
+        cmmnCodeService.regist(cd);
+        CmmnCode child1 = new CmmnCode();
+        child1.setId(FoodType.한식.getName());
+        child1.setParentCode(cmmnCodeService.findById("FOODTYPE"));
+        child1.setCodeName(FoodType.한식.toString());
+        cmmnCodeService.regist(child1);
+        CmmnCode child2 = new CmmnCode();
+        child2.setId(FoodType.일식.getName());
+        child2.setParentCode(cmmnCodeService.findById("FOODTYPE"));
+        child2.setCodeName(FoodType.일식.toString());
+        cmmnCodeService.regist(child2);
+        CmmnCode child3 = new CmmnCode();
+        child3.setId(FoodType.중식.getName());
+        child3.setParentCode(cmmnCodeService.findById("FOODTYPE"));
+        child3.setCodeName(FoodType.중식.toString());
+        cmmnCodeService.regist(child3);
+        CmmnCode child4 = new CmmnCode();
+        child4.setId(FoodType.양식.getName());
+        child4.setParentCode(cmmnCodeService.findById("FOODTYPE"));
+        child4.setCodeName(FoodType.양식.toString());
+        cmmnCodeService.regist(child4);
+        CmmnCode child5 = new CmmnCode();
+        child5.setId(FoodType.아시안식.getName());
+        child5.setParentCode(cmmnCodeService.findById("FOODTYPE"));
+        child5.setCodeName(FoodType.아시안식.toString());
+        cmmnCodeService.regist(child5);
+        CmmnCode child6 = new CmmnCode();
+        child6.setId(FoodType.회식.getName());
+        child6.setParentCode(cmmnCodeService.findById("FOODTYPE"));
+        child6.setCodeName(FoodType.회식.toString());
+        cmmnCodeService.regist(child6);
+        CmmnCode child7 = new CmmnCode();
+        child7.setId(FoodType.기타.getName());
+        child7.setParentCode(cmmnCodeService.findById("FOODTYPE"));
+        child7.setCodeName(FoodType.기타.toString());
+        cmmnCodeService.regist(child7);
+        return null;
+    }
+    // Review Post
+    @GetMapping("/MenuType")
+    public ResponseEntity<Object> registMenuType(HttpServletRequest request) throws Exception {
+        CmmnCode cd = new CmmnCode();
+        cd.setId("MENUTYPE");
+        cd.setCodeName("MENUTYPE");
+        cmmnCodeService.regist(cd);
+        CmmnCode child1 = new CmmnCode();
+        child1.setId(MenuType.식사.getName());
+        child1.setParentCode(cmmnCodeService.findById("MENUTYPE"));
+        child1.setCodeName(MenuType.식사.getName());
+        cmmnCodeService.regist(child1);
+        CmmnCode child2 = new CmmnCode();
+        child2.setId(MenuType.안주.getName());
+        child2.setParentCode(cmmnCodeService.findById("MENUTYPE"));
+        child2.setCodeName(MenuType.안주.getName());
+        cmmnCodeService.regist(child2);
+        return null;
+    }
+    // Review Post
+    @GetMapping("/DISPLAYTYPE")
+    public ResponseEntity<Object> registDesplayType(HttpServletRequest request) throws Exception {
+        CmmnCode cd = new CmmnCode();
+        cd.setId("DESPALYTYPE");
+        cd.setCodeName("DESPALYTYPE");
+        cmmnCodeService.regist(cd);
+        CmmnCode child1 = new CmmnCode();
+        child1.setId(DisplayType.대표.getName());
+        child1.setParentCode(cmmnCodeService.findById("DESPALYTYPE"));
+        child1.setCodeName(DisplayType.대표.getName());
+        cmmnCodeService.regist(child1);
+        CmmnCode child2 = new CmmnCode();
+        child2.setId(DisplayType.비대표.getName());
+        child2.setParentCode(cmmnCodeService.findById("DESPALYTYPE"));
+        child2.setCodeName(DisplayType.비대표.getName());
+        cmmnCodeService.regist(child2);
+        return null;
+    }
+
+    @GetMapping("/restaurantBulkInsert")
+    public ResponseEntity<Object> restaurantBulkInsert(HttpServletRequest request) throws Exception {
+        this.restaurantService.registBulkByCSV();
+        return null;
+    }
+
+    @GetMapping("/reviewBulkInsert")
+    public ResponseEntity<Object> reviewBulkInsert(HttpServletRequest request) throws Exception {
+        this.reViewService.registBulkByCSV();
+        return null;
+    }
+
+    @GetMapping("/menuBulkInsert")
+    public ResponseEntity<Object> menuBulkInsert(HttpServletRequest request) throws Exception {
+        this.menuService.registBulkByCSV();
+        return null;
+    }
+
+    @GetMapping("/mediaBulkInsert")
+    public ResponseEntity<Object> mediaBulkInsert(HttpServletRequest request) throws Exception {
+        this.mediaService.registBulkByCSV();
+        return null;
+    }
+}

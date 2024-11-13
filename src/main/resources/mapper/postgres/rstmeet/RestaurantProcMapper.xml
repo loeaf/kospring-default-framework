@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+
+<mapper namespace="com.service.frame.rstmeet.mapper.RestaurantProcMapper">
+    <select id="findRestaurant" resultType="com.service.frame.rstmeet.model.RestaurantDto">
+        SELECT A.*,
+        B.path imagePath, B.normal_file_name normalFileName, B.small_file_name smallFileName, B.instagram_id instagramId, D.content reViewContent,
+        E.shortCode shortCode,
+        CASE WHEN C.id IS NULL THEN false ELSE true END AS liked
+        <if test="longitude != null and latitude != null">
+            , ST_DistanceSphere(
+            geo_info,
+            ST_SetSRID(ST_MakePoint(#{longitude}, #{latitude}), 4326)
+            ) / 1000 AS distance
+        </if>
+        FROM
+        restaurant AS A
+        LEFT JOIN media AS B
+        ON A.id = B.restaurant_id
+        LEFT JOIN like_list AS C
+        ON A.id = C.restaurant_id
+        LEFT JOIN re_view AS D
+        ON A.id = D.restaurant_id
+        LEFT JOIN insta_info AS E
+        ON A.insta_info_id = E.id
+        WHERE
+            1 = 1
+            <!-- if longitude, latitude -->
+            <if test="longitude != null and latitude != null">
+            <![CDATA[
+                AND ST_DistanceSphere(
+                geo_info,
+                ST_SetSRID(ST_MakePoint(#{longitude}, #{latitude}), 4326)
+                ) / 1000 < 5
+            ]]>
+            </if>
+            <if test="id != null">
+                and A.id = #{id}
+            </if>
+        <if test="longitude != null and latitude != null">
+            order by distance asc
+        </if>
+    </select>
+    <select id="findRestaurant2" resultType="com.service.frame.rstmeet.model.RestaurantDto">
+        SELECT A.*
+        <if test="longitude != null and latitude != null">
+            , ST_DistanceSphere(
+            geo_info,
+            ST_SetSRID(ST_MakePoint(#{longitude}, #{latitude}), 4326)
+            ) / 1000 AS distance
+        </if>
+        FROM
+        restaurant AS A
+        WHERE
+            1 = 1
+            <!-- if longitude, latitude -->
+            <if test="longitude != null and latitude != null">
+            <![CDATA[
+                AND ST_DistanceSphere(
+                geo_info,
+                ST_SetSRID(ST_MakePoint(#{longitude}, #{latitude}), 4326)
+                ) / 1000 < 10
+            ]]>
+            </if>
+            <if test="id != null">
+                and A.id = #{id}
+            </if>
+        <if test="longitude != null and latitude != null">
+            order by distance asc
+        </if>
+    </select>
+
+    <select id="findRestaurantByInstaInfoId" resultType="com.service.frame.rstmeet.model.RestaurantDto">
+        select A.* from restaurant as A where A.insta_info_id = #{instaInfoId}
+    </select>
+
+    <select id="findRestaurantById" resultType="com.service.frame.rstmeet.model.RestaurantDto">
+        select A.* from restaurant as A where A.id = #{id}
+    </select>
+</mapper>

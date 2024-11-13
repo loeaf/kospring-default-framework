@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.service.frame.datacreator.mapper.InstaInfoMapper">
+  <resultMap id="BaseResultMap" type="com.service.frame.datacreator.model.InstaInfo">
+    <!--@mbg.generated-->
+    <!--@Table insta_info-->
+    <id column="id" jdbcType="VARCHAR" property="id" />
+    <result column="like_info" jdbcType="INTEGER" property="likeInfo" />
+    <result column="full_name" jdbcType="VARCHAR" property="fullName" />
+    <result column="content" jdbcType="VARCHAR" property="content" />
+  </resultMap>
+  <sql id="Base_Column_List">
+    <!--@mbg.generated-->
+    id, like_info, full_name, content
+  </sql>
+  <select id="selectByPrimaryKey" resultMap="BaseResultMap">
+    <!--@mbg.generated-->
+    select 
+    <include refid="Base_Column_List" />
+    from insta_info
+    where location = #{location,jdbcType=VARCHAR}
+  </select>
+  <delete id="deleteByPrimaryKey" parameterType="java.lang.String">
+    <!--@mbg.generated-->
+    delete from insta_info
+    where id = #{id,jdbcType=VARCHAR}
+  </delete>
+  <insert id="insert" parameterType="com.service.frame.datacreator.model.InstaInfo">
+    <!--@mbg.generated-->
+    insert into insta_info (id, like_info, full_name,
+      content)
+    values (#{id,jdbcType=VARCHAR}, #{likeInfo,jdbcType=INTEGER}, #{fullName,jdbcType=VARCHAR},
+      #{content,jdbcType=VARCHAR})
+  </insert>
+  <insert id="insertSelective" parameterType="com.service.frame.datacreator.model.InstaInfo">
+    <!--@mbg.generated-->
+    insert into insta_info
+    <trim prefix="(" suffix=")" suffixOverrides=",">
+      <if test="id != null">
+        id,
+      </if>
+      <if test="likeInfo != null">
+        like_info
+      </if>
+      <if test="fullName != null">
+        full_name,
+      </if>
+      <if test="content != null">
+        content,
+      </if>
+    </trim>
+    <trim prefix="values (" suffix=")" suffixOverrides=",">
+      <if test="id != null">
+        #{id,jdbcType=VARCHAR},
+      </if>
+      <if test="likeInfo != null">
+        #{likeInfo,jdbcType=INTEGER},
+      </if>
+      <if test="fullName != null">
+        #{fullName,jdbcType=VARCHAR},
+      </if>
+      <if test="content != null">
+        #{content,jdbcType=VARCHAR},
+      </if>
+    </trim>
+  </insert>
+  <update id="updateByPrimaryKeySelective" parameterType="com.service.frame.datacreator.model.InstaInfo">
+    <!--@mbg.generated-->
+    update insta_info
+    <set>
+      <if test="likeInfo != null">
+        like_info = #{likeInfo,jdbcType=INTEGER},
+      </if>
+      <if test="fullName != null">
+        full_name = #{fullName,jdbcType=VARCHAR},
+      </if>
+      <if test="content != null">
+        content = #{content,jdbcType=VARCHAR},
+      </if>
+    </set>
+    where id = #{id,jdbcType=VARCHAR}
+  </update>
+  <update id="updateByPrimaryKey" parameterType="com.service.frame.datacreator.model.InstaInfo">
+    <!--@mbg.generated-->
+    update insta_info
+    set like_info = #{likeInfo,jdbcType=INTEGER},
+      full_name = #{fullName,jdbcType=VARCHAR},
+      content = #{content,jdbcType=VARCHAR}
+    where id = #{id,jdbcType=VARCHAR}
+  </update>
+</mapper>

@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+
+<mapper namespace="com.service.frame.rstmeet.mapper.LikeListMapper">
+
+    <select id="findByUserIdAndRestaurantId" resultType="com.service.frame.rstmeet.model.LikeList">
+        SELECT * FROM like_list WHERE user_id = #{userId} AND restaurant_id = #{restaurantId} LIMIT 1
+        </select>
+
+    <insert id="regist">
+        INSERT INTO like_list (id, user_id, restaurant_id) VALUES (#{id}, #{userId}, #{restaurantId})
+    </insert>
+
+    <select id="findLikeRestaurant" resultType="com.service.frame.rstmeet.model.RestaurantDto">
+        select A.*, B.path imagePath, B.name imageName,
+        CASE WHEN C.id IS NULL THEN false ELSE true END AS liked
+        from
+        restaurant AS A LEFT JOIN media AS B
+        ON A.id = B.restaurant_id
+        LEFT JOIN like_list AS C
+        ON A.id = C.restaurant_id
+        <where>
+            1 = 1 and C.user_id = #{userId}
+        </where>
+    </select>
+</mapper>
