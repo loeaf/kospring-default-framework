@@ -5,7 +5,7 @@ import com.service.frame.datacreator.service.InstaInfoService;
 import com.service.frame.datacreator.service.InstaMediaService;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
-import jakarta.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletRequest;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 

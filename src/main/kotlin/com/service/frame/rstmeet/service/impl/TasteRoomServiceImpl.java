@@ -9,7 +9,7 @@ import com.service.frame.rstmeet.service.TasteRoomService;
 import com.service.frame.siginin.dto.UserToken;
 import com.service.frame.siginin.model.User;
 import com.service.frame.siginin.service.AccountService;
-import jakarta.annotation.PostConstruct;
+import javax.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;

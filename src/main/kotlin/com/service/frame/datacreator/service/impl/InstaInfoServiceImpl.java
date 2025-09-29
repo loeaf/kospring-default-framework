@@ -6,7 +6,7 @@ import com.service.frame.datacreator.mapper.InstaInfoMapper;
 import com.service.frame.datacreator.model.InstaInfo;
 import com.service.frame.datacreator.repository.InstaInfoRepository;
 import com.service.frame.datacreator.service.InstaInfoService;
-import jakarta.annotation.PostConstruct;
+import javax.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;

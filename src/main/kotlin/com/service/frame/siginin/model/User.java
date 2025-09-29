@@ -2,7 +2,7 @@ package com.service.frame.siginin.model;
 
 import com.service.frame.common.domain.Domain;
 import com.service.frame.rstmeet.model.*;
-import jakarta.persistence.*;
+import javax.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;

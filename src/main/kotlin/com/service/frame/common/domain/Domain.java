@@ -1,10 +1,10 @@
 package com.service.frame.common.domain;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.MappedSuperclass;
-import jakarta.persistence.TemporalType;
+import javax.persistence.Column;
+import javax.persistence.MappedSuperclass;
+import javax.persistence.TemporalType;
 import lombok.AllArgsConstructor;
-import jakarta.persistence.Id; // Correct import for JPA entities
+import javax.persistence.Id; // Correct import for JPA entities
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;

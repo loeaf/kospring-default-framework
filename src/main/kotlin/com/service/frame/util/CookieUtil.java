@@ -1,7 +1,7 @@
 package com.service.frame.util;
 
-import jakarta.servlet.http.Cookie;
-import jakarta.servlet.http.HttpServletRequest;
+import javax.servlet.http.Cookie;
+import javax.servlet.http.HttpServletRequest;
 
 import java.io.IOException;
 import java.net.URLDecoder;

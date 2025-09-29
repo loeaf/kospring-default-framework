@@ -4,7 +4,7 @@ import com.service.frame.common.misc.ServiceImpl;
 import com.service.frame.rstmeet.model.Chatting;
 import com.service.frame.rstmeet.repository.ChattingRepository;
 import com.service.frame.rstmeet.service.ChattingService;
-import jakarta.annotation.PostConstruct;
+import javax.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 

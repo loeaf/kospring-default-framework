@@ -6,7 +6,7 @@ import com.service.frame.siginin.dto.param.UserParam;
 import com.service.frame.siginin.model.User;
 import com.service.frame.siginin.service.AccountService;
 import com.service.frame.siginin.types.AccountType;
-import jakarta.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;

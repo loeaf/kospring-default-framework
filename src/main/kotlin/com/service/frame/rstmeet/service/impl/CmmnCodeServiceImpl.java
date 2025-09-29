@@ -5,7 +5,7 @@ import com.service.frame.rstmeet.model.CmmnCode;
 import com.service.frame.rstmeet.repository.CmmnCodeRepository;
 import com.service.frame.rstmeet.service.CmmnCodeService;
 import com.service.frame.rstmeet.type.CountryType;
-import jakarta.annotation.PostConstruct;
+import javax.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 

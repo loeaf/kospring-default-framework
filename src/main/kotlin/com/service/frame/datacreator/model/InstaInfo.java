@@ -2,10 +2,10 @@ package com.service.frame.datacreator.model;
 
 import com.service.frame.common.domain.Domain;
 import com.service.frame.rstmeet.model.Restaurant;
-import jakarta.persistence.CascadeType;
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.OneToMany;
+import javax.persistence.CascadeType;
+import javax.persistence.Column;
+import javax.persistence.Entity;
+import javax.persistence.OneToMany;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;

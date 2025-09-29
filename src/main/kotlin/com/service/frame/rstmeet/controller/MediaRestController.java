@@ -2,7 +2,7 @@ package com.service.frame.rstmeet.controller;
 
 import com.service.frame.rstmeet.dto.params.RestaurantParam;
 import com.service.frame.rstmeet.service.MediaService;
-import jakarta.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;

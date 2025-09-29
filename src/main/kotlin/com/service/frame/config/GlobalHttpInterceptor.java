@@ -5,8 +5,8 @@ import com.service.frame.siginin.dto.UserToken;
 import com.service.frame.siginin.model.User;
 import com.service.frame.siginin.util.JwtManager;
 import io.jsonwebtoken.ExpiredJwtException;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -33,7 +33,8 @@ public class GlobalHttpInterceptor implements HandlerInterceptor {
             "/location",
             "/Restaurant/findRestByInstaId",
             "/File/upload",
-            "/resources"
+            "/resources",
+            "/api/members"
     };
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {

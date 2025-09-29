@@ -5,7 +5,7 @@ import com.service.frame.rstmeet.model.Chatting;
 import com.service.frame.rstmeet.model.TasteRoom;
 import com.service.frame.rstmeet.service.ChattingService;
 import com.service.frame.rstmeet.service.TasteRoomService;
-import jakarta.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;

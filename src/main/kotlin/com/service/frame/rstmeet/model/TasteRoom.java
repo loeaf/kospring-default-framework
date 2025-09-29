@@ -3,7 +3,7 @@ package com.service.frame.rstmeet.model;
 import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.service.frame.common.domain.Domain;
 import com.service.frame.siginin.model.User;
-import jakarta.persistence.*;
+import javax.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;

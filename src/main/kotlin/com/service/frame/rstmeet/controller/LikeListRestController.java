@@ -5,7 +5,7 @@ import com.service.frame.rstmeet.dto.params.LikeParam;
 import com.service.frame.rstmeet.model.RestaurantDto;
 import com.service.frame.rstmeet.service.LikeListService;
 import com.service.frame.siginin.dto.UserToken;
-import jakarta.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;

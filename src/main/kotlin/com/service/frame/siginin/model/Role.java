@@ -3,7 +3,7 @@ package com.service.frame.siginin.model;
 import com.service.frame.common.domain.Domain;
 import com.service.frame.common.misc.BizField;
 import com.service.frame.siginin.types.Authority;
-import jakarta.persistence.*;
+import javax.persistence.*;
 import lombok.*;
 
 @Entity

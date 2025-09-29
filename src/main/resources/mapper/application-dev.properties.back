@@ -4,7 +4,7 @@ spring.datasource.username=postgres
 spring.datasource.password=vaiv!@34
 spring.datasource.driver-class-name=org.postgresql.Driver
 
-spring.jpa.hibernate.ddl-auto=update
+
 spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.PostgreSQLDialect
 
 # MyBatis ??

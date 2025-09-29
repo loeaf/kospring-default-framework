@@ -3,8 +3,8 @@
  */
 package com.service.frame.common.misc;
 
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpSession;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpSession;
 
 import java.util.Enumeration;
 

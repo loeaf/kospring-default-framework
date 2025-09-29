@@ -7,7 +7,7 @@ import com.service.frame.file.domain.FileInfo;
 import com.service.frame.file.persistence.FileInfoRepository;
 import com.service.frame.file.service.FileInfoService;
 import com.service.frame.rstmeet.dto.params.RestaurantParam;
-import jakarta.annotation.PostConstruct;
+import javax.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import net.coobird.thumbnailator.Thumbnails;
 import org.slf4j.Logger;

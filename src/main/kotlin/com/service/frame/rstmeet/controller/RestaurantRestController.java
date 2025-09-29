@@ -9,7 +9,7 @@ import com.service.frame.rstmeet.dto.params.RestaurantParam;
 import com.service.frame.rstmeet.model.Restaurant;
 import com.service.frame.rstmeet.model.RestaurantDto;
 import com.service.frame.rstmeet.service.RestaurantService;
-import jakarta.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;

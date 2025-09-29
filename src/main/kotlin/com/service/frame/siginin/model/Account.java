@@ -3,7 +3,7 @@ package com.service.frame.siginin.model;
 import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.service.frame.common.domain.Domain;
 import com.service.frame.siginin.types.AccountType;
-import jakarta.persistence.*;
+import javax.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;

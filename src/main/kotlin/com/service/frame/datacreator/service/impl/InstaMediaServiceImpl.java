@@ -5,7 +5,7 @@ import com.service.frame.datacreator.mapper.InstaMediaMapper;
 import com.service.frame.datacreator.model.InstaMedia;
 import com.service.frame.datacreator.repository.InstaMediaRepository;
 import com.service.frame.datacreator.service.InstaMediaService;
-import jakarta.annotation.PostConstruct;
+import javax.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;

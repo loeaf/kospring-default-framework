@@ -3,7 +3,7 @@ package com.service.frame.siginin.controller;
 import com.service.frame.rstmeet.dto.ResResult;
 import com.service.frame.siginin.dto.param.UserParam;
 import com.service.frame.siginin.service.SigininService;
-import jakarta.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;

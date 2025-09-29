@@ -8,7 +8,7 @@ import com.service.frame.siginin.repository.AccountRepository;
 import com.service.frame.siginin.service.AccountService;
 import com.service.frame.siginin.types.AccountType;
 import com.service.frame.siginin.util.JwtManager;
-import jakarta.annotation.PostConstruct;
+import javax.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;

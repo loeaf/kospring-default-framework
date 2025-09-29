@@ -7,7 +7,7 @@ import com.service.frame.rstmeet.model.Restaurant;
 import com.service.frame.rstmeet.repository.MediaRepository;
 import com.service.frame.rstmeet.repository.RestaurantRepository;
 import com.service.frame.rstmeet.service.MediaService;
-import jakarta.annotation.PostConstruct;
+import javax.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;

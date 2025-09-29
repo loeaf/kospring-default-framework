@@ -4,7 +4,7 @@ import com.service.frame.common.misc.ServiceImpl;
 import com.service.frame.rstmeet.model.TasteRoomMember;
 import com.service.frame.rstmeet.repository.TasteRoomMemberRepository;
 import com.service.frame.rstmeet.service.TasteRoomMemberService;
-import jakarta.annotation.PostConstruct;
+import javax.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 

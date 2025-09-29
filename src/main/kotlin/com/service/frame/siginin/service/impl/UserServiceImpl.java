@@ -4,7 +4,7 @@ import com.service.frame.common.misc.ServiceImpl;
 import com.service.frame.siginin.model.User;
 import com.service.frame.siginin.repository.UserRepository;
 import com.service.frame.siginin.service.UserService;
-import jakarta.annotation.PostConstruct;
+import javax.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 

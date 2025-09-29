@@ -9,7 +9,7 @@ import com.service.frame.rstmeet.service.RestaurantService;
 import com.service.frame.rstmeet.service.TasteRoomMemberService;
 import com.service.frame.rstmeet.service.TasteRoomService;
 import com.service.frame.siginin.dto.UserToken;
-import jakarta.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;

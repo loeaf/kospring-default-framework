@@ -8,7 +8,7 @@ import com.service.frame.rstmeet.model.RestaurantDto;
 import com.service.frame.rstmeet.repository.LikeListRepository;
 import com.service.frame.rstmeet.service.LikeListService;
 import com.service.frame.siginin.dto.UserToken;
-import jakarta.annotation.PostConstruct;
+import javax.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;

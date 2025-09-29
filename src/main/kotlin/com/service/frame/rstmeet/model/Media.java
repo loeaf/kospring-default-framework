@@ -2,10 +2,10 @@ package com.service.frame.rstmeet.model;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.service.frame.common.domain.Domain;
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
+import javax.persistence.Column;
+import javax.persistence.Entity;
+import javax.persistence.JoinColumn;
+import javax.persistence.ManyToOne;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;

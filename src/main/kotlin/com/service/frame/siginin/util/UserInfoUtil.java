@@ -3,7 +3,7 @@ package com.service.frame.siginin.util;
 import com.service.frame.siginin.model.User;
 import com.service.frame.siginin.security.CustomUserInfo;
 import com.service.frame.siginin.service.UserService;
-import jakarta.annotation.PostConstruct;
+import javax.annotation.PostConstruct;
 import lombok.Data;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.context.SecurityContextHolder;
