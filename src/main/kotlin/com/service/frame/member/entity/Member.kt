@@ -5,6 +5,7 @@ import org.springframework.data.annotation.CreatedDate
 import org.springframework.data.annotation.LastModifiedDate
 import org.springframework.data.jpa.domain.support.AuditingEntityListener
 import java.time.LocalDateTime
+import java.time.LocalDate
 
 @Entity
 @Table(name = "members")
@@ -15,28 +16,35 @@ data class Member(
     val id: Long? = null,
 
     @Column(nullable = false, unique = true, length = 255)
-    val email: String,
+    val email: String = "",
 
     @Column(nullable = false, length = 255)
-    val password: String,
+    val password: String = "",
 
     @Column(name = "company_name", nullable = false, length = 255)
-    val companyName: String,
+    val companyName: String = "",
 
     @Column(name = "business_registration_number", nullable = false, unique = true, length = 20)
-    val businessRegistrationNumber: String,
+    val businessRegistrationNumber: String = "",
 
     @Column(name = "contact_number", nullable = false, length = 20)
-    val contactNumber: String,
+    val contactNumber: String = "",
 
     @Column(name = "business_registration_file", nullable = false, length = 500)
-    val businessRegistrationFile: String,
+    val businessRegistrationFile: String = "",
 
     @Column(name = "telecommunication_sales_file", nullable = false, length = 500)
-    val telecommunicationSalesFile: String,
+    val telecommunicationSalesFile: String = "",
 
     @Column(name = "is_premium", nullable = false)
     val isPremium: Boolean = false,
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "rental_status", nullable = false, length = 20)
+    val rentalStatus: RentalStatus = RentalStatus.INACTIVE,
+
+    @Column(name = "current_rental_expiry")
+    val currentRentalExpiry: LocalDate? = null,
 
     @CreatedDate
     @Column(name = "created_at", nullable = false, updatable = false)
@@ -45,4 +53,14 @@ data class Member(
     @LastModifiedDate
     @Column(name = "updated_at", nullable = false)
     var updatedAt: LocalDateTime? = null
-)
+) {
+    constructor() : this(
+        null, "", "", "", "", "", "", "", false, RentalStatus.INACTIVE, null, null, null
+    )
+}
+
+enum class RentalStatus {
+    ACTIVE,
+    EXPIRED,
+    INACTIVE
+}

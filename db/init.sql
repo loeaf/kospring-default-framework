@@ -10,6 +10,8 @@ CREATE TABLE members (
     business_registration_file VARCHAR(500) NOT NULL COMMENT '사업자등록증 파일 경로',
     telecommunication_sales_file VARCHAR(500) NOT NULL COMMENT '통신판매업신고증 파일 경로',
     is_premium BOOLEAN DEFAULT FALSE COMMENT '프리미엄 회원 여부',
+    rental_status VARCHAR(20) DEFAULT 'INACTIVE' CHECK (rental_status IN ('ACTIVE', 'EXPIRED', 'INACTIVE')) COMMENT '임대권 상태',
+    current_rental_expiry DATE COMMENT '현재 임대권 만료일',
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP COMMENT '생성일시',
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP COMMENT '수정일시'
 );
@@ -21,7 +23,12 @@ CREATE TABLE rounds (
     title VARCHAR(255) NOT NULL COMMENT '라운드 제목',
     description TEXT COMMENT '라운드 설명',
     category VARCHAR(100) COMMENT '라운드 카테고리 (헬스케어 분야)',
-    order_amount DECIMAL(12,2) NOT NULL COMMENT '라운드별 정해진 발주 금액',
+    order_amount DECIMAL(12,2) NOT NULL COMMENT '라운드별 정해진 발주 금액 (총 비용)',
+    template_cost DECIMAL(12,2) DEFAULT 0 COMMENT '템플릿 비용',
+    ai_generation_cost DECIMAL(12,2) DEFAULT 0 COMMENT 'AI 기반 광고 생성비',
+    targeting_posting_cost DECIMAL(12,2) DEFAULT 0 COMMENT '타게팅 게시비',
+    server_rental_cost DECIMAL(12,2) DEFAULT 0 COMMENT '서버 임대비',
+    other_costs DECIMAL(12,2) DEFAULT 0 COMMENT '기타 비용',
     start_date TIMESTAMP WITH TIME ZONE NOT NULL COMMENT '라운드 시작일',
     end_date TIMESTAMP WITH TIME ZONE NOT NULL COMMENT '라운드 종료일',
     status VARCHAR(20) DEFAULT 'ACTIVE' CHECK (status IN ('ACTIVE', 'CLOSED', 'PENDING')) COMMENT '라운드 상태',
@@ -84,7 +91,7 @@ CREATE TABLE order_payments (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP COMMENT '수정일시'
 );
 
--- 6. AI 생성 광고 컨텐츠 테이블
+-- 6. AI 생성 광고 컨텐츠 테이블 (상품)
 CREATE TABLE ai_advertisements (
     id BIGSERIAL PRIMARY KEY,
     round_id BIGINT NOT NULL REFERENCES rounds(id) ON DELETE CASCADE COMMENT '라운드 ID',
@@ -252,6 +259,36 @@ CREATE TABLE member_settlement_summary (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP COMMENT '수정일시'
 );
 
+-- 14. 임대권 테이블
+CREATE TABLE rental_rights (
+    id BIGSERIAL PRIMARY KEY,
+    member_id BIGINT NOT NULL REFERENCES members(id) ON DELETE CASCADE COMMENT '회원 ID',
+    purchase_date DATE NOT NULL COMMENT '임대권 구매일',
+    expiry_date DATE NOT NULL COMMENT '임대권 만료일',
+    rental_amount DECIMAL(12,2) NOT NULL DEFAULT 100000000 COMMENT '임대권 금액 (1억원 고정)',
+    status VARCHAR(20) DEFAULT 'ACTIVE' CHECK (status IN ('ACTIVE', 'EXPIRED', 'CANCELLED')) COMMENT '임대권 상태',
+    auto_renewal BOOLEAN DEFAULT FALSE COMMENT '자동 갱신 여부',
+    renewal_notice_sent BOOLEAN DEFAULT FALSE COMMENT '갱신 안내 발송 여부',
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP COMMENT '생성일시',
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP COMMENT '수정일시'
+);
+
+-- 15. 서비스 계약 테이블
+CREATE TABLE service_contracts (
+    id BIGSERIAL PRIMARY KEY,
+    member_id BIGINT NOT NULL REFERENCES members(id) ON DELETE CASCADE COMMENT '회원 ID',
+    rental_contract_agreed BOOLEAN DEFAULT FALSE COMMENT '임대권 구매 계약 동의',
+    service_contract_agreed BOOLEAN DEFAULT FALSE COMMENT '광고 게시 용역 계약 동의',
+    marketing_agreed BOOLEAN DEFAULT FALSE COMMENT '마케팅 정보 수신 동의',
+    contract_date TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP COMMENT '계약 체결일',
+    contract_version VARCHAR(10) DEFAULT '1.0' COMMENT '계약서 버전',
+    ip_address VARCHAR(45) COMMENT '계약 체결 시 IP 주소',
+    user_agent TEXT COMMENT '계약 체결 시 사용자 환경',
+    is_active BOOLEAN DEFAULT TRUE COMMENT '계약 활성화 여부',
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP COMMENT '생성일시',
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP COMMENT '수정일시'
+);
+
 -- ==========================================
 -- 인덱스 생성
 -- ==========================================
@@ -321,6 +358,17 @@ CREATE INDEX idx_member_settlements_batch_id ON member_settlements(settlement_ba
 CREATE INDEX idx_member_settlements_member_id ON member_settlements(member_id);
 CREATE INDEX idx_member_settlements_settlement_date ON member_settlements(settlement_date);
 CREATE INDEX idx_member_settlements_status ON member_settlements(settlement_status);
+
+-- rental_rights 테이블
+CREATE INDEX idx_rental_rights_member_id ON rental_rights(member_id);
+CREATE INDEX idx_rental_rights_status ON rental_rights(status);
+CREATE INDEX idx_rental_rights_expiry_date ON rental_rights(expiry_date);
+CREATE INDEX idx_rental_rights_purchase_date ON rental_rights(purchase_date);
+
+-- service_contracts 테이블
+CREATE INDEX idx_service_contracts_member_id ON service_contracts(member_id);
+CREATE INDEX idx_service_contracts_is_active ON service_contracts(is_active);
+CREATE INDEX idx_service_contracts_contract_date ON service_contracts(contract_date);
 
 -- ==========================================
 -- 함수 생성

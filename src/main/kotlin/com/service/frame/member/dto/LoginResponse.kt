@@ -3,7 +3,7 @@ package com.service.frame.member.dto
 import com.service.frame.member.entity.RentalStatus
 import java.time.LocalDate
 
-data class MemberRegistrationResponse(
+data class LoginResponse(
     val id: Long,
     val email: String,
     val companyName: String,
@@ -12,5 +12,7 @@ data class MemberRegistrationResponse(
     val isPremium: Boolean,
     val rentalStatus: RentalStatus,
     val currentRentalExpiry: LocalDate?,
-    val message: String
+    val hasValidContract: Boolean,
+    val message: String,
+    val success: Boolean
 )
