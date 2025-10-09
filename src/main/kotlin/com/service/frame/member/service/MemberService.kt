@@ -137,6 +137,11 @@ class MemberService(
         )
     }
 
+    @Transactional(readOnly = true)
+    fun getActiveMembers(): List<Member> {
+        return memberRepository.findActiveMembers()
+    }
+
     fun completeRegistration(request: CompleteRegistrationRequest): CompleteRegistrationResponse {
         try {
             // 1. 회원가입 처리

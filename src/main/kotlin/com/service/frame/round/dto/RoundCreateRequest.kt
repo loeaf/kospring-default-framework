@@ -20,6 +20,26 @@ data class RoundCreateRequest(
     @field:Digits(integer = 10, fraction = 2, message = "발주 금액 형식이 올바르지 않습니다")
     val orderAmount: BigDecimal,
 
+    @field:DecimalMin(value = "0", message = "템플릿 비용은 0 이상이어야 합니다")
+    @field:Digits(integer = 10, fraction = 2, message = "템플릿 비용 형식이 올바르지 않습니다")
+    val templateCost: BigDecimal? = null,
+
+    @field:DecimalMin(value = "0", message = "AI 생성비는 0 이상이어야 합니다")
+    @field:Digits(integer = 10, fraction = 2, message = "AI 생성비 형식이 올바르지 않습니다")
+    val aiGenerationCost: BigDecimal? = null,
+
+    @field:DecimalMin(value = "0", message = "타게팅 게시비는 0 이상이어야 합니다")
+    @field:Digits(integer = 10, fraction = 2, message = "타게팅 게시비 형식이 올바르지 않습니다")
+    val targetingPostingCost: BigDecimal? = null,
+
+    @field:DecimalMin(value = "0", message = "서버 임대비는 0 이상이어야 합니다")
+    @field:Digits(integer = 10, fraction = 2, message = "서버 임대비 형식이 올바르지 않습니다")
+    val serverRentalCost: BigDecimal? = null,
+
+    @field:DecimalMin(value = "0", message = "기타 비용은 0 이상이어야 합니다")
+    @field:Digits(integer = 10, fraction = 2, message = "기타 비용 형식이 올바르지 않습니다")
+    val otherCosts: BigDecimal? = null,
+
     @field:NotNull(message = "시작일은 필수입니다")
     @field:Future(message = "시작일은 현재 시간 이후여야 합니다")
     val startDate: LocalDateTime,

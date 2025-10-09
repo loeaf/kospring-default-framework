@@ -92,6 +92,25 @@ class MemberController(
         }
     }
 
+    @GetMapping("/active")
+    fun getActiveMembers(): ResponseEntity<List<Map<String, Any?>>> {
+        return try {
+            val activeMembers = memberService.getActiveMembers()
+            val response = activeMembers.map { member ->
+                mapOf(
+                    "id" to member.id,
+                    "email" to member.email,
+                    "companyName" to member.companyName,
+                    "rentalStatus" to member.rentalStatus.toString(),
+                    "currentRentalExpiry" to member.currentRentalExpiry?.toString()
+                )
+            }
+            ResponseEntity.ok(response)
+        } catch (e: Exception) {
+            ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(emptyList())
+        }
+    }
+
     @PostMapping("/complete-registration")
     fun completeRegistration(
         @RequestParam email: String,

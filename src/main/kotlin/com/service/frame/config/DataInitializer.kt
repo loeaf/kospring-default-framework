@@ -38,9 +38,9 @@ class DataInitializer(
         val adminMember = Member(
             email = "admin@example.com",
             password = passwordEncoder.encode("admin123"),
-            companyName = "관리자 회사",
+            companyName = "도시와농촌",
             businessRegistrationNumber = "123-45-67890",
-            contactNumber = "010-1234-5678",
+            contactNumber = "044-417-6661",
             businessRegistrationFile = "/uploads/admin_business.pdf",
             telecommunicationSalesFile = "/uploads/admin_telecom.pdf",
             isPremium = true

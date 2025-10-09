@@ -56,6 +56,7 @@ class RentalRightsService(
 
         // 회원의 임대권 상태 업데이트
         val updatedMember = member.copy(
+            isPremium = true,
             rentalStatus = RentalStatus.ACTIVE,
             currentRentalExpiry = expiryDate
         )
@@ -144,6 +145,7 @@ class RentalRightsService(
 
         // 회원의 임대권 상태 업데이트
         val updatedMember = existingRentalRights.member.copy(
+            isPremium = true,
             rentalStatus = RentalStatus.ACTIVE,
             currentRentalExpiry = newExpiryDate
         )

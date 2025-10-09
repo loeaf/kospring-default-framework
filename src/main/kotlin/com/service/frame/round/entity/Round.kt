@@ -31,6 +31,21 @@ data class Round(
     @Column(name = "order_amount", nullable = false, precision = 12, scale = 2)
     val orderAmount: BigDecimal = BigDecimal.ZERO,
 
+    @Column(name = "template_cost", precision = 12, scale = 2)
+    val templateCost: BigDecimal? = null,
+
+    @Column(name = "ai_generation_cost", precision = 12, scale = 2)
+    val aiGenerationCost: BigDecimal? = null,
+
+    @Column(name = "targeting_posting_cost", precision = 12, scale = 2)
+    val targetingPostingCost: BigDecimal? = null,
+
+    @Column(name = "server_rental_cost", precision = 12, scale = 2)
+    val serverRentalCost: BigDecimal? = null,
+
+    @Column(name = "other_costs", precision = 12, scale = 2)
+    val otherCosts: BigDecimal? = null,
+
     @Column(name = "start_date", nullable = false)
     val startDate: LocalDateTime = LocalDateTime.now(),
 
@@ -58,7 +73,8 @@ data class Round(
 ) {
     constructor() : this(
         null, null, "", null, null,
-        BigDecimal.ZERO, LocalDateTime.now(), LocalDateTime.now(),
+        BigDecimal.ZERO, null, null, null, null, null,
+        LocalDateTime.now(), LocalDateTime.now(),
         RoundStatus.ACTIVE, null, null, null, null
     )
 }

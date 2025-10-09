@@ -702,17 +702,54 @@ curl -X GET "http://localhost:8080/api/rental-rights/expiring?days=30"
 
 #### cURL 예제
 ```bash
-curl -X POST http://localhost:8080/api/rounds?createdById=1 \
+# 동적 날짜 생성 (현재 시간 기준으로 미래 날짜)
+START_DATE=$(date -d "+1 month" '+%Y-%m-%dT09:00:00')
+END_DATE=$(date -d "+2 months" '+%Y-%m-%dT18:00:00')
+
+curl -X POST http://localhost:8080/api/rounds?createdById=15 \
   -H "Content-Type: application/json" \
-  -d '{
-    "title": "헬스케어 라운드 #1",
-    "description": "헬스케어 분야 광고 라운드입니다.",
-    "category": "헬스케어",
-    "orderAmount": 100000.00,
-    "startDate": "2024-01-01T09:00:00",
-    "endDate": "2024-01-31T18:00:00",
-    "maxParticipants": 50
-  }'
+  -d "{
+    \"title\": \"헬스케어 라운드 #1\",
+    \"description\": \"헬스케어 분야 광고 라운드입니다.\",
+    \"category\": \"헬스케어\",
+    \"orderAmount\": 100000000.00,
+    \"templateCost\": 10000000.00,
+    \"aiGenerationCost\": 20000000.00,
+    \"targetingPostingCost\": 30000000.00,
+    \"serverRentalCost\": 25000000.00,
+    \"otherCosts\": 15000000.00,
+    \"startDate\": \"$START_DATE\",
+    \"endDate\": \"$END_DATE\",
+    \"maxParticipants\": 50
+  }"
+```
+
+**macOS 사용자용 (BSD date):**
+```bash
+# macOS에서는 gdate 사용 (brew install coreutils 필요)
+START_DATE=$(gdate -d "+1 month" '+%Y-%m-%dT09:00:00')
+END_DATE=$(gdate -d "+2 months" '+%Y-%m-%dT18:00:00')
+
+# 또는 간단한 방법 (현재 날짜 기준)
+START_DATE=$(date -v+1m '+%Y-%m-%dT09:00:00')
+END_DATE=$(date -v+2m '+%Y-%m-%dT18:00:00')
+
+curl -X POST http://localhost:8080/api/rounds?createdById=15 \
+  -H "Content-Type: application/json" \
+  -d "{
+    \"title\": \"연말 Q4 라운드 #1\",
+    \"description\": \"회사 소개 분야 광고 라운드입니다.\",
+    \"category\": \"회사소개\",
+    \"orderAmount\": 100000000.00,
+    \"templateCost\": 10000000.00,
+    \"aiGenerationCost\": 20000000.00,
+    \"targetingPostingCost\": 30000000.00,
+    \"serverRentalCost\": 25000000.00,
+    \"otherCosts\": 15000000.00,
+    \"startDate\": \"$START_DATE\",
+    \"endDate\": \"$END_DATE\",
+    \"maxParticipants\": 50
+  }"
 ```
 
 ---
