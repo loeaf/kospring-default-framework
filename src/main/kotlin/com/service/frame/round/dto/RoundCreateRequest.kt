@@ -47,6 +47,14 @@ data class RoundCreateRequest(
     @field:NotNull(message = "종료일은 필수입니다")
     val endDate: LocalDateTime,
 
+    val postStartDate: LocalDateTime? = null,
+
+    val postEndDate: LocalDateTime? = null,
+
+    @field:Min(value = 1, message = "게시 기간은 1일 이상이어야 합니다")
+    @field:Max(value = 90, message = "게시 기간은 90일을 초과할 수 없습니다")
+    val postDurationDays: Int? = 7,
+
     @field:Min(value = 1, message = "최대 참여자 수는 1명 이상이어야 합니다")
     val maxParticipants: Int? = null
 ) {

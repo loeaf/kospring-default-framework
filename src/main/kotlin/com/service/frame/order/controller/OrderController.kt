@@ -189,4 +189,39 @@ class OrderController(
         val result = orderService.getOverviewStatistics(period)
         return ResponseEntity.ok(result)
     }
+
+    /**
+     * 라운드의 모든 포스트가 게시 완료되었을 때 주문 상태를 완료로 업데이트
+     */
+    @PutMapping("/round/{roundId}/complete-if-posts-published")
+    fun completeOrdersIfAllPostsPublished(
+        @PathVariable roundId: Long,
+        @RequestParam(defaultValue = "모든 포스트 게시 완료로 인한 주문 완료") notes: String
+    ): ResponseEntity<List<OrderResponse>> {
+        val result = orderService.completeOrdersIfAllPostsPublished(roundId, notes)
+        return ResponseEntity.ok(result)
+    }
+
+    /**
+     * 라운드의 주문 진행률 업데이트 (포스트 게시 상태 기반)
+     */
+    @PutMapping("/round/{roundId}/update-progress")
+    fun updateOrderProgressByRound(
+        @PathVariable roundId: Long
+    ): ResponseEntity<List<OrderResponse>> {
+        val result = orderService.updateOrderProgressByRound(roundId)
+        return ResponseEntity.ok(result)
+    }
+
+    /**
+     * 라운드의 입금 확인된 주문들을 광고 게시중 상태로 변경
+     */
+    @PutMapping("/round/{roundId}/start-advertising")
+    fun startAdvertisingForRound(
+        @PathVariable roundId: Long,
+        @RequestParam(defaultValue = "입금 확인 완료, 광고 게시 시작") notes: String
+    ): ResponseEntity<List<OrderResponse>> {
+        val result = orderService.startAdvertisingForRound(roundId, notes)
+        return ResponseEntity.ok(result)
+    }
 }

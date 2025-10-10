@@ -50,7 +50,11 @@ data class OrderPayment(
 
     @Column(name = "updated_at", nullable = false)
     val updatedAt: LocalDateTime = LocalDateTime.now()
-)
+) {
+    override fun toString(): String {
+        return "OrderPayment(id=$id, orderId=${order.id}, applicationNumber='$applicationNumber', paymentAmount=$paymentAmount, depositorName=$depositorName, paymentStatus=$paymentStatus, paymentConfirmedAt=$paymentConfirmedAt, bankAccountNumber='$bankAccountNumber', bankName='$bankName', notes=$notes, createdAt=$createdAt, updatedAt=$updatedAt)"
+    }
+}
 
 enum class PaymentStatus {
     WAITING,    // 입금 대기

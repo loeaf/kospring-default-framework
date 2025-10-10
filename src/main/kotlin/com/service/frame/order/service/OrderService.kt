@@ -171,6 +171,32 @@ class OrderService(
         val latestPayment = orderPaymentRepository.findByOrderIdOrderByCreatedAtDesc(order.id!!)
             .firstOrNull()
 
+        // Calculate payment amount from Round's cost fields
+        val round = order.adTask.round
+        val paymentAmount = round.orderAmount
+
+        // Always provide payment info with hardcoded bank details for user deposit
+        val paymentInfo = if (latestPayment != null) {
+            mapToOrderPaymentInfo(latestPayment).copy(
+                paymentAmount = paymentAmount,
+                bankAccountNumber = "110-123-456789",
+                bankName = "신한은행"
+            )
+        } else {
+            // Create payment info for user deposit with hardcoded bank details
+            OrderPaymentInfo(
+                id = 0L,
+                applicationNumber = "",
+                paymentAmount = paymentAmount,
+                depositorName = "",
+                paymentStatus = PaymentStatus.WAITING,
+                bankAccountNumber = "110-123-456789",
+                bankName = "신한은행",
+                paymentConfirmedAt = null,
+                notes = "입금 후 결제 승인 요청 바랍니다"
+            )
+        }
+
         return OrderResponse(
             id = order.id!!,
             orderNumber = order.orderNumber,
@@ -195,7 +221,7 @@ class OrderService(
             notes = order.notes,
             createdAt = order.createdAt,
             updatedAt = order.updatedAt,
-            paymentInfo = latestPayment?.let { mapToOrderPaymentInfo(it) }
+            paymentInfo = paymentInfo
         )
     }
 
@@ -628,5 +654,284 @@ class OrderService(
             roundTitle = round.title ?: "Round #$roundId",
             members = memberKeys
         )
+    }
+
+    @Transactional
+    fun startAdvertisingForRound(roundId: Long, notes: String): List<OrderResponse> {
+        val round = roundRepository.findById(roundId).orElse(null)
+            ?: throw IllegalArgumentException("Round not found with id: $roundId")
+        
+        // 라운드의 모든 AdTask 조회
+        val adTasks = adTaskRepository.findByRoundId(roundId)
+        if (adTasks.isEmpty()) {
+            logger.info("라운드 $roundId 에 AdTask가 없습니다.")
+            return emptyList()
+        }
+        
+        // 라운드의 모든 주문 조회 (PAYMENT_CONFIRMED 상태인 것만)
+        val paymentConfirmedOrders = adTasks.mapNotNull { adTask ->
+            orderRepository.findByAdTaskId(adTask.id!!)
+                ?.takeIf { it.status == OrderStatus.PAYMENT_CONFIRMED }
+        }
+        
+        if (paymentConfirmedOrders.isEmpty()) {
+            logger.info("라운드 $roundId 에 입금 확인된 주문이 없습니다.")
+            return emptyList()
+        }
+        
+        // 모든 입금 확인된 주문들을 IN_PROGRESS로 업데이트
+        val startedOrders = paymentConfirmedOrders.map { order ->
+            val updatedOrder = order.updateStatus(
+                newStatus = OrderStatus.IN_PROGRESS,
+                notes = notes,
+                progressRate = 0 // 광고 게시 시작 시 진행률 0%로 초기화
+            )
+            orderRepository.save(updatedOrder)
+        }
+        
+        logger.info("라운드 $roundId 의 ${startedOrders.size}개 주문이 광고 게시중 상태로 변경되었습니다.")
+        
+        return startedOrders.map { order ->
+            val member = memberRepository.findById(order.member.id!!).orElse(null)
+            val adTask = adTaskRepository.findById(order.adTask.id!!).orElse(null)
+            val payment = order.getCurrentPayment()
+            val paymentInfo = payment?.let {
+                OrderPaymentInfo(
+                    id = it.id!!,
+                    applicationNumber = it.applicationNumber,
+                    paymentAmount = it.paymentAmount,
+                    depositorName = it.depositorName,
+                    paymentStatus = it.paymentStatus,
+                    bankAccountNumber = it.bankAccountNumber,
+                    bankName = it.bankName,
+                    paymentConfirmedAt = it.paymentConfirmedAt,
+                    notes = it.notes
+                )
+            }
+            
+            OrderResponse(
+                id = order.id!!,
+                orderNumber = order.orderNumber,
+                memberId = order.member.id!!,
+                memberEmail = member?.email ?: "",
+                memberCompanyName = member?.companyName ?: "",
+                adTaskId = order.adTask.id!!,
+                adTaskTitle = adTask?.webUrl ?: "",
+                productName = order.productName,
+                quantity = order.quantity,
+                requirements = order.requirements,
+                deadline = order.deadline,
+                startDate = order.startDate,
+                completionDate = order.completionDate,
+                failureDate = order.failureDate,
+                progressRate = order.progressRate,
+                failureReason = order.failureReason,
+                status = order.status,
+                submittedAt = order.submittedAt,
+                reviewedAt = order.reviewedAt,
+                reviewedByName = order.reviewedBy?.companyName,
+                notes = order.notes,
+                createdAt = order.createdAt,
+                updatedAt = order.updatedAt,
+                paymentInfo = paymentInfo
+            )
+        }
+    }
+
+    @Transactional
+    fun completeOrdersIfAllPostsPublished(roundId: Long, notes: String): List<OrderResponse> {
+        val round = roundRepository.findById(roundId).orElse(null)
+            ?: throw IllegalArgumentException("Round not found with id: $roundId")
+        
+        // 라운드의 모든 AdTask 조회
+        val adTasks = adTaskRepository.findByRoundId(roundId)
+        if (adTasks.isEmpty()) {
+            logger.info("라운드 $roundId 에 AdTask가 없습니다.")
+            return emptyList()
+        }
+        
+        // 라운드의 모든 주문 조회 (IN_PROGRESS 상태인 것만)
+        val inProgressOrders = adTasks.mapNotNull { adTask ->
+            orderRepository.findByAdTaskId(adTask.id!!)
+                ?.takeIf { it.status == OrderStatus.IN_PROGRESS }
+        }
+        
+        if (inProgressOrders.isEmpty()) {
+            logger.info("라운드 $roundId 에 진행중인 주문이 없습니다.")
+            return emptyList()
+        }
+        
+        // 라운드의 모든 포스트가 PUBLISHED 상태인지 확인
+        val allPostsPublished = checkAllPostsPublished(roundId)
+        
+        if (!allPostsPublished) {
+            logger.info("라운드 $roundId 의 모든 포스트가 아직 게시되지 않았습니다.")
+            return emptyList()
+        }
+        
+        // 모든 포스트가 게시되었다면 주문들을 COMPLETED로 업데이트
+        val completedOrders = inProgressOrders.map { order ->
+            val updatedOrder = order.updateStatus(
+                newStatus = OrderStatus.COMPLETED,
+                notes = notes,
+                progressRate = 100
+            )
+            orderRepository.save(updatedOrder)
+        }
+        
+        logger.info("라운드 $roundId 의 ${completedOrders.size}개 주문이 완료 상태로 업데이트되었습니다.")
+        
+        return completedOrders.map { order ->
+            val member = memberRepository.findById(order.member.id!!).orElse(null)
+            val adTask = adTaskRepository.findById(order.adTask.id!!).orElse(null)
+            val payment = order.getCurrentPayment()
+            val paymentInfo = payment?.let {
+                OrderPaymentInfo(
+                    id = it.id!!,
+                    applicationNumber = it.applicationNumber,
+                    paymentAmount = it.paymentAmount,
+                    depositorName = it.depositorName,
+                    paymentStatus = it.paymentStatus,
+                    bankAccountNumber = it.bankAccountNumber,
+                    bankName = it.bankName,
+                    paymentConfirmedAt = it.paymentConfirmedAt,
+                    notes = it.notes
+                )
+            }
+            
+            OrderResponse(
+                id = order.id!!,
+                orderNumber = order.orderNumber,
+                memberId = order.member.id!!,
+                memberEmail = member?.email ?: "",
+                memberCompanyName = member?.companyName ?: "",
+                adTaskId = order.adTask.id!!,
+                adTaskTitle = adTask?.webUrl ?: "",
+                productName = order.productName,
+                quantity = order.quantity,
+                requirements = order.requirements,
+                deadline = order.deadline,
+                startDate = order.startDate,
+                completionDate = order.completionDate,
+                failureDate = order.failureDate,
+                progressRate = order.progressRate,
+                failureReason = order.failureReason,
+                status = order.status,
+                submittedAt = order.submittedAt,
+                reviewedAt = order.reviewedAt,
+                reviewedByName = order.reviewedBy?.companyName,
+                notes = order.notes,
+                createdAt = order.createdAt,
+                updatedAt = order.updatedAt,
+                paymentInfo = paymentInfo
+            )
+        }
+    }
+    
+    @Transactional
+    fun updateOrderProgressByRound(roundId: Long): List<OrderResponse> {
+        val round = roundRepository.findById(roundId).orElse(null)
+            ?: throw IllegalArgumentException("Round not found with id: $roundId")
+        
+        // 라운드의 모든 AdTask 조회
+        val adTasks = adTaskRepository.findByRoundId(roundId)
+        if (adTasks.isEmpty()) {
+            logger.info("라운드 $roundId 에 AdTask가 없습니다.")
+            return emptyList()
+        }
+        
+        val updatedOrders = mutableListOf<Order>()
+        
+        adTasks.forEach { adTask ->
+            val order = orderRepository.findByAdTaskId(adTask.id!!)
+            if (order != null && order.status == OrderStatus.IN_PROGRESS) {
+                // 해당 AdTask의 포스트 진행률 계산
+                val progressRate = calculatePostProgressForAdTask(adTask.id!!)
+                
+                val updatedOrder = order.copy(
+                    progressRate = progressRate,
+                    updatedAt = LocalDateTime.now()
+                )
+                
+                val savedOrder = orderRepository.save(updatedOrder)
+                updatedOrders.add(savedOrder)
+                
+                logger.info("AdTask ${adTask.id}의 주문 진행률 업데이트: $progressRate%")
+            }
+        }
+        
+        logger.info("라운드 $roundId 의 ${updatedOrders.size}개 주문 진행률이 업데이트되었습니다.")
+        
+        return updatedOrders.map { order ->
+            val member = memberRepository.findById(order.member.id!!).orElse(null)
+            val adTask = adTaskRepository.findById(order.adTask.id!!).orElse(null)
+            val payment = order.getCurrentPayment()
+            val paymentInfo = payment?.let {
+                OrderPaymentInfo(
+                    id = it.id!!,
+                    applicationNumber = it.applicationNumber,
+                    paymentAmount = it.paymentAmount,
+                    depositorName = it.depositorName,
+                    paymentStatus = it.paymentStatus,
+                    bankAccountNumber = it.bankAccountNumber,
+                    bankName = it.bankName,
+                    paymentConfirmedAt = it.paymentConfirmedAt,
+                    notes = it.notes
+                )
+            }
+            
+            OrderResponse(
+                id = order.id!!,
+                orderNumber = order.orderNumber,
+                memberId = order.member.id!!,
+                memberEmail = member?.email ?: "",
+                memberCompanyName = member?.companyName ?: "",
+                adTaskId = order.adTask.id!!,
+                adTaskTitle = adTask?.webUrl ?: "",
+                productName = order.productName,
+                quantity = order.quantity,
+                requirements = order.requirements,
+                deadline = order.deadline,
+                startDate = order.startDate,
+                completionDate = order.completionDate,
+                failureDate = order.failureDate,
+                progressRate = order.progressRate,
+                failureReason = order.failureReason,
+                status = order.status,
+                submittedAt = order.submittedAt,
+                reviewedAt = order.reviewedAt,
+                reviewedByName = order.reviewedBy?.companyName,
+                notes = order.notes,
+                createdAt = order.createdAt,
+                updatedAt = order.updatedAt,
+                paymentInfo = paymentInfo
+            )
+        }
+    }
+    
+    private fun calculatePostProgressForAdTask(adTaskId: Long): Int {
+        return try {
+            val progressRate = orderRepository.calculatePostProgressForAdTask(adTaskId)
+            progressRate.coerceIn(0, 100) // 0-100% 범위로 제한
+        } catch (e: Exception) {
+            logger.error("AdTask $adTaskId 의 포스트 진행률 계산 중 오류 발생", e)
+            0
+        }
+    }
+    
+    private fun checkAllPostsPublished(roundId: Long): Boolean {
+        // AdvertisementAssignmentRepository를 통해 라운드의 모든 할당 조회
+        // 각 할당에 대응하는 포스트가 모두 PUBLISHED 상태인지 확인
+        return try {
+            // HTTP 호출 대신 직접 데이터베이스 쿼리로 확인
+            // 이는 같은 애플리케이션 내의 다른 서비스를 호출하는 것이므로 
+            // 직접 repository를 주입받아 사용하는 것이 더 효율적
+            val result = orderRepository.checkAllPostsPublishedInRound(roundId)
+            logger.info("라운드 $roundId 포스트 게시 상태 확인 결과: $result")
+            result
+        } catch (e: Exception) {
+            logger.error("라운드 $roundId 포스트 게시 상태 확인 중 오류 발생", e)
+            false
+        }
     }
 }

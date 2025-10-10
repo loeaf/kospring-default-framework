@@ -99,4 +99,29 @@ interface OrderRepository : JpaRepository<Order, Long> {
         @Param("startDate") startDate: LocalDateTime,
         @Param("endDate") endDate: LocalDateTime
     ): List<Map<String, Any>>
+    
+    @Query("""
+        SELECT CASE 
+            WHEN COUNT(aa) = 0 THEN false
+            WHEN COUNT(ap) = 0 THEN false
+            WHEN COUNT(ap) = COUNT(CASE WHEN ap.postStatus = 'PUBLISHED' THEN 1 END) THEN true
+            ELSE false
+        END
+        FROM AdvertisementAssignment aa
+        LEFT JOIN AdvertisementPost ap ON aa.id = ap.assignment.id
+        WHERE aa.round.id = :roundId
+    """)
+    fun checkAllPostsPublishedInRound(@Param("roundId") roundId: Long): Boolean
+    
+    @Query("""
+        SELECT CASE 
+            WHEN COUNT(aa) = 0 THEN 0
+            WHEN COUNT(ap) = 0 THEN 0
+            ELSE ROUND((COUNT(CASE WHEN ap.postStatus = 'PUBLISHED' THEN 1 END) * 100.0) / COUNT(aa), 0)
+        END
+        FROM AdvertisementAssignment aa
+        LEFT JOIN AdvertisementPost ap ON aa.id = ap.assignment.id
+        WHERE aa.adTask.id = :adTaskId
+    """)
+    fun calculatePostProgressForAdTask(@Param("adTaskId") adTaskId: Long): Int
 }

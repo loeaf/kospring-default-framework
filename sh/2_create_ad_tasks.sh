@@ -8,7 +8,7 @@ echo "Creating test ad_task with your sample data..."
   curl -X POST http://localhost:8080/api/ad-tasks/test-data \
     -H "Content-Type: application/json" \
     -d '{
-      "roundId": 32,
+      "roundId": 33,
       "memberIds": [17, 16, 19, 20, 21, 22, 23],
       "taskStatus": "COMPLETED",
       "adContent": "Sample HTML content for test ads",

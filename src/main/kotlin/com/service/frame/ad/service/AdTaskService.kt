@@ -202,6 +202,10 @@ class AdTaskService(
         val now = LocalDateTime.now()
         val allAdTasks = mutableListOf<AdTask>()
         
+        // 기존 AdTask 조회 (중복 방지)
+        val existingTasks = adTaskRepository.findByRound(round)
+        val existingKeys = existingTasks.map { "${request.roundId}_${it.member.id}_${it.adType}_${it.adIndex}" }.toSet()
+        
         // 각 멤버에 대해 3개의 광고 타입으로 생성
         request.memberIds.forEach { memberId ->
             val member = memberRepository.findById(memberId).orElse(null)
@@ -211,6 +215,29 @@ class AdTaskService(
             
             adTypes.forEachIndexed { index, adType ->
                 val adIndex = index + 1
+                val key = "${request.roundId}_${memberId}_${adType}_${adIndex}"
+                
+                // 이미 존재하는 조합은 건너뛰기
+                if (existingKeys.contains(key)) {
+                    logger.info("AdTask already exists for round ${request.roundId}, member $memberId, type $adType, index $adIndex - skipping")
+                    
+                    // 기존 태스크를 결과에 포함 (상태 업데이트 가능)
+                    val existingTask = existingTasks.find { 
+                        it.member.id == memberId && it.adType == adType && it.adIndex == adIndex 
+                    }
+                    if (existingTask != null) {
+                        val updatedTask = existingTask.copy(
+                            status = status,
+                            adContent = request.adContent,
+                            updatedAt = now,
+                            startedAt = if (status != AdTaskStatus.PENDING && existingTask.startedAt == null) now else existingTask.startedAt,
+                            completedAt = if (status == AdTaskStatus.COMPLETED && existingTask.completedAt == null) now else existingTask.completedAt
+                        )
+                        allAdTasks.add(adTaskRepository.save(updatedTask))
+                    }
+                    return@forEachIndexed
+                }
+                
                 val adTask = AdTask(
                     round = round,
                     member = member,
@@ -227,9 +254,11 @@ class AdTaskService(
                 )
                 
                 allAdTasks.add(adTaskRepository.save(adTask))
+                logger.info("Created new AdTask for round ${request.roundId}, member $memberId, type $adType, index $adIndex")
             }
         }
 
+        logger.info("Created or updated ${allAdTasks.size} AdTasks for round ${request.roundId}")
         return allAdTasks
     }
 }

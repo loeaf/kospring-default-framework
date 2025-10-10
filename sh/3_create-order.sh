@@ -1,23 +1,8 @@
 
 #!/bin/bash
-
-# 기존 방식 - adTaskId를 직접 지정
-echo "=== 기존 방식 - adTaskId 직접 지정 ==="
-curl -X POST "http://localhost:8080/api/orders/members/32" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "adTaskId": 47,
-    "productName": "마케팅 광고 서비스",
-    "quantity": 1,
-    "requirements": "특별한 요구사항이 있습니다.",
-    "deadline": "2025-12-31"
-  }'
-
-echo -e "\n\n"
-
 # 새로운 테스트 방식 - 라운드 ID로 ad_index=1인 AdTask 자동 선택
 echo "=== 새로운 테스트 방식 - 라운드 ID로 자동 선택 ==="
-curl -X POST "http://localhost:8080/api/orders/test/round/32" \
+curl -X POST "http://localhost:8080/api/orders/test/round/33" \
   -H "Content-Type: application/json" \
   -d '{
     "productName": "마케팅 광고 서비스",
@@ -61,6 +46,23 @@ echo -e "\n\n"
 echo "=== 새로운 테스트 방식 - 라운드 ID로 일괄 결제 승인 ==="
 curl -X PUT "http://localhost:8080/api/orders/test/payments/round/32/confirm-all" \
   -H "Content-Type: application/json"
+
+echo -e "\n\n"
+
+# 입금 확인 완료 후 광고 게시중 상태로 변경
+echo "=== 입금 확인 완료 후 광고 게시중 상태로 변경 ==="
+curl -X PUT "http://localhost:8080/api/orders/round/32/start-advertising" \
+  -H "Content-Type: application/json"
+
+echo -e "\n\n"
+
+# 주문 상태 확인
+echo "=== 주문 상태 확인 ==="
+curl -X GET "http://localhost:8080/api/orders/round/32/info" \
+  -H "Content-Type: application/json"
+
+
+
 
 
 

@@ -42,6 +42,9 @@ class RoundServiceImpl(
             otherCosts = request.otherCosts,
             startDate = request.startDate,
             endDate = request.endDate,
+            postStartDate = request.postStartDate,
+            postEndDate = request.postEndDate,
+            postDurationDays = request.postDurationDays,
             maxParticipants = request.maxParticipants,
             createdBy = creator
         )

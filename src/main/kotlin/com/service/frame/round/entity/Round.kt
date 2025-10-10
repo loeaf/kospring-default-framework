@@ -52,6 +52,15 @@ data class Round(
     @Column(name = "end_date", nullable = false)
     val endDate: LocalDateTime = LocalDateTime.now(),
 
+    @Column(name = "post_start_date")
+    val postStartDate: LocalDateTime? = null,
+
+    @Column(name = "post_end_date")
+    val postEndDate: LocalDateTime? = null,
+
+    @Column(name = "post_duration_days")
+    val postDurationDays: Int? = 7,
+
     @Enumerated(EnumType.STRING)
     @Column(length = 20, nullable = false)
     val status: RoundStatus = RoundStatus.ACTIVE,
@@ -75,8 +84,20 @@ data class Round(
         null, null, "", null, null,
         BigDecimal.ZERO, null, null, null, null, null,
         LocalDateTime.now(), LocalDateTime.now(),
+        null, null, 7,
         RoundStatus.ACTIVE, null, null, null, null
     )
+
+    // 게시 시작일 계산 (라운드 종료일 = 게시 시작일)
+    fun getCalculatedPostStartDate(): LocalDateTime {
+        return postStartDate ?: endDate
+    }
+
+    // 게시 종료일 계산 (게시 시작일 + duration)
+    fun getCalculatedPostEndDate(): LocalDateTime {
+        val duration = postDurationDays ?: 7
+        return postEndDate ?: getCalculatedPostStartDate().plusDays(duration.toLong())
+    }
 }
 
 
