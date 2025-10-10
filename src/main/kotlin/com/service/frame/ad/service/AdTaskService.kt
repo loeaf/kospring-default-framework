@@ -1,14 +1,15 @@
 package com.service.frame.ad.service
 
+import com.service.frame.ad.controller.CreateTestAdTaskRequest
 import com.service.frame.ad.dto.AdTaskResponse
 import com.service.frame.ad.dto.RoundAdsResponse
 import com.service.frame.ad.dto.RoundWithAdsResponse
+import com.service.frame.ad.entity.AdTask
 import com.service.frame.ad.entity.AdTaskStatus
 import com.service.frame.ad.repository.AdTaskRepository
 import com.service.frame.round.repository.RoundRepository
 import com.service.frame.member.repository.MemberRepository
 import org.slf4j.LoggerFactory
-import org.springframework.data.repository.findByIdOrNull
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.time.LocalDateTime
@@ -23,7 +24,7 @@ class AdTaskService(
     private val logger = LoggerFactory.getLogger(AdTaskService::class.java)
 
     fun getRoundAds(roundId: Long): RoundAdsResponse {
-        val round = roundRepository.findByIdOrNull(roundId)
+        val round = roundRepository.findById(roundId).orElse(null)
             ?: throw IllegalArgumentException("Round not found with id: $roundId")
 
         val allTasks = adTaskRepository.findByRound(round)
@@ -64,7 +65,7 @@ class AdTaskService(
 
 
     fun getAdTaskById(taskId: Long): AdTaskResponse {
-        val task = adTaskRepository.findByIdOrNull(taskId)
+        val task = adTaskRepository.findById(taskId).orElse(null)
             ?: throw IllegalArgumentException("AdTask not found with id: $taskId")
 
         return AdTaskResponse(
@@ -129,7 +130,7 @@ class AdTaskService(
     }
 
     fun getMemberAdInRound(roundId: Long, memberId: Long): RoundWithAdsResponse {
-        val round = roundRepository.findByIdOrNull(roundId)
+        val round = roundRepository.findById(roundId).orElse(null)
             ?: throw IllegalArgumentException("Round not found with id: $roundId")
         
         val tasks = adTaskRepository.findByRoundIdAndMemberId(roundId, memberId)
@@ -185,5 +186,50 @@ class AdTaskService(
             remainingTimeMs = remainingTimeMs,
             ads = adResponses
         )
+    }
+
+    @Transactional
+    fun createTestAdTasksForMembers(request: CreateTestAdTaskRequest): List<AdTask> {
+        val round = roundRepository.findById(request.roundId).orElse(null)
+            ?: throw IllegalArgumentException("Round not found with id: ${request.roundId}")
+
+        val status = try {
+            AdTaskStatus.valueOf(request.taskStatus.uppercase())
+        } catch (e: IllegalArgumentException) {
+            throw IllegalArgumentException("Invalid task status: ${request.taskStatus}")
+        }
+
+        val now = LocalDateTime.now()
+        val allAdTasks = mutableListOf<AdTask>()
+        
+        // 각 멤버에 대해 3개의 광고 타입으로 생성
+        request.memberIds.forEach { memberId ->
+            val member = memberRepository.findById(memberId).orElse(null)
+                ?: throw IllegalArgumentException("Member not found with id: $memberId")
+
+            val adTypes = listOf("scratch", "carousel", "interactive")
+            
+            adTypes.forEachIndexed { index, adType ->
+                val adIndex = index + 1
+                val adTask = AdTask(
+                    round = round,
+                    member = member,
+                    status = status,
+                    adContent = request.adContent,
+                    htmlFilePath = "generated_ads/round_${request.roundId}/member_${memberId}_${adType}_${adIndex}.html",
+                    webUrl = "/round_${request.roundId}/member_${memberId}_${adType}_${adIndex}.html",
+                    adType = adType,
+                    adIndex = adIndex,
+                    createdAt = now,
+                    updatedAt = now,
+                    startedAt = if (status != AdTaskStatus.PENDING) now else null,
+                    completedAt = if (status == AdTaskStatus.COMPLETED) now else null
+                )
+                
+                allAdTasks.add(adTaskRepository.save(adTask))
+            }
+        }
+
+        return allAdTasks
     }
 }

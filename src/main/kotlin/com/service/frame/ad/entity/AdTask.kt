@@ -49,7 +49,13 @@ data class AdTask(
     val retryCount: Int = 0,
 
     @Column(name = "web_url")
-    val webUrl: String? = null
+    val webUrl: String? = null,
+
+    @Column(name = "ad_type")
+    val adType: String? = null,
+
+    @Column(name = "ad_index")
+    val adIndex: Int? = null
 )
 
 enum class AdTaskStatus {

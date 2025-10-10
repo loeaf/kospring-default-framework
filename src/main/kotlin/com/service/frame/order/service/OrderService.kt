@@ -1,0 +1,632 @@
+package com.service.frame.order.service
+
+import com.service.frame.order.dto.*
+import com.service.frame.order.entity.Order
+import com.service.frame.order.entity.OrderPayment
+import com.service.frame.order.entity.OrderStatus
+import com.service.frame.order.entity.PaymentStatus
+import com.service.frame.order.repository.OrderRepository
+import com.service.frame.order.repository.OrderPaymentRepository
+import com.service.frame.member.repository.MemberRepository
+import com.service.frame.ad.repository.AdTaskRepository
+import com.service.frame.round.repository.RoundRepository
+import org.slf4j.LoggerFactory
+import org.springframework.stereotype.Service
+import org.springframework.transaction.annotation.Transactional
+import java.math.BigDecimal
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
+
+@Service
+@Transactional(readOnly = true)
+class OrderService(
+    private val orderRepository: OrderRepository,
+    private val orderPaymentRepository: OrderPaymentRepository,
+    private val memberRepository: MemberRepository,
+    private val adTaskRepository: AdTaskRepository,
+    private val roundRepository: RoundRepository
+) {
+    private val logger = LoggerFactory.getLogger(OrderService::class.java)
+
+    @Transactional
+    fun createOrder(memberId: Long, request: OrderCreateRequest): OrderResponse {
+        val member = memberRepository.findById(memberId).orElse(null)
+            ?: throw IllegalArgumentException("Member not found with id: $memberId")
+        
+        val adTask = adTaskRepository.findById(request.adTaskId).orElse(null)
+            ?: throw IllegalArgumentException("AdTask not found with id: ${request.adTaskId}")
+
+        val orderNumber = generateOrderNumber()
+        
+        val order = Order(
+            orderNumber = orderNumber,
+            adTask = adTask,
+            member = member,
+            productName = request.productName,
+            quantity = request.quantity,
+            requirements = request.requirements,
+            deadline = request.deadline,
+            status = OrderStatus.PENDING
+        )
+
+        val savedOrder = orderRepository.save(order)
+        return mapToOrderResponse(savedOrder)
+    }
+
+    @Transactional
+    fun createPayment(request: PaymentCreateRequest): OrderPaymentInfo {
+        val order = orderRepository.findById(request.orderId)
+            .orElseThrow { IllegalArgumentException("Order not found with id: ${request.orderId}") }
+
+        if (order.status != OrderStatus.PENDING) {
+            throw IllegalStateException("Order must be in PENDING status to create payment")
+        }
+
+        val applicationNumber = generateApplicationNumber()
+        
+        val payment = OrderPayment(
+            order = order,
+            applicationNumber = applicationNumber,
+            paymentAmount = request.paymentAmount,
+            depositorName = request.depositorName,
+            bankAccountNumber = request.bankAccountNumber,
+            bankName = request.bankName,
+            notes = request.notes,
+            paymentStatus = PaymentStatus.WAITING
+        )
+
+        val savedPayment = orderPaymentRepository.save(payment)
+        
+        // 주문 상태를 PAYMENT_WAITING으로 변경
+        updateOrderStatus(order.id!!, OrderStatusUpdateRequest(OrderStatus.PAYMENT_WAITING))
+        
+        return mapToOrderPaymentInfo(savedPayment)
+    }
+
+    @Transactional
+    fun updatePaymentStatus(paymentId: Long, request: PaymentStatusUpdateRequest): OrderPaymentInfo {
+        val payment = orderPaymentRepository.findById(paymentId).orElse(null)
+            ?: throw IllegalArgumentException("Payment not found with id: $paymentId")
+
+        val updatedPayment = payment.copy(
+            paymentStatus = request.paymentStatus,
+            notes = request.notes,
+            paymentConfirmedAt = if (request.paymentStatus == PaymentStatus.CONFIRMED) LocalDateTime.now() else null,
+            updatedAt = LocalDateTime.now()
+        )
+
+        val savedPayment = orderPaymentRepository.save(updatedPayment)
+
+        // 결제 확인되면 주문 상태도 업데이트
+        if (request.paymentStatus == PaymentStatus.CONFIRMED) {
+            updateOrderStatus(payment.order.id!!, OrderStatusUpdateRequest(OrderStatus.PAYMENT_CONFIRMED))
+        }
+
+        return mapToOrderPaymentInfo(savedPayment)
+    }
+
+    @Transactional
+    fun updateOrderStatus(orderId: Long, request: OrderStatusUpdateRequest): OrderResponse {
+        val order = orderRepository.findById(orderId).orElse(null)
+            ?: throw IllegalArgumentException("Order not found with id: $orderId")
+
+        val updatedOrder = order.copy(
+            status = request.status,
+            notes = request.notes,
+            failureReason = request.failureReason,
+            progressRate = request.progressRate ?: order.progressRate,
+            startDate = if (request.status == OrderStatus.IN_PROGRESS && order.startDate == null) 
+                LocalDateTime.now().toLocalDate() else order.startDate,
+            completionDate = if (request.status == OrderStatus.COMPLETED && order.completionDate == null) 
+                LocalDateTime.now().toLocalDate() else order.completionDate,
+            failureDate = if (request.status == OrderStatus.FAILED && order.failureDate == null) 
+                LocalDateTime.now().toLocalDate() else order.failureDate,
+            updatedAt = LocalDateTime.now()
+        )
+
+        val savedOrder = orderRepository.save(updatedOrder)
+        return mapToOrderResponse(savedOrder)
+    }
+
+    fun getOrder(orderId: Long): OrderResponse {
+        val order = orderRepository.findById(orderId).orElse(null)
+            ?: throw IllegalArgumentException("Order not found with id: $orderId")
+        return mapToOrderResponse(order)
+    }
+
+    fun getOrderByNumber(orderNumber: String): OrderResponse {
+        val order = orderRepository.findByOrderNumber(orderNumber)
+            ?: throw IllegalArgumentException("Order not found with number: $orderNumber")
+        return mapToOrderResponse(order)
+    }
+
+    fun getMemberOrders(memberId: Long): MemberOrderList {
+        val member = memberRepository.findById(memberId).orElse(null)
+            ?: throw IllegalArgumentException("Member not found with id: $memberId")
+
+        val orders = orderRepository.findByMemberIdOrderBySubmittedAtDesc(memberId)
+        val orderResponses = orders.map { mapToOrderResponse(it) }
+
+        return MemberOrderList(
+            memberId = memberId,
+            memberCompanyName = member.companyName ?: "",
+            memberEmail = member.email,
+            totalOrders = orders.size,
+            orders = orderResponses
+        )
+    }
+
+
+    fun getPaymentsByOrder(orderId: Long): List<OrderPaymentInfo> {
+        val payments = orderPaymentRepository.findByOrderIdOrderByCreatedAtDesc(orderId)
+        return payments.map { mapToOrderPaymentInfo(it) }
+    }
+
+    fun getPendingPayments(): List<OrderPaymentInfo> {
+        val payments = orderPaymentRepository.findByPaymentStatusOrderByCreatedAtAsc(PaymentStatus.WAITING)
+        return payments.map { mapToOrderPaymentInfo(it) }
+    }
+
+    private fun mapToOrderResponse(order: Order): OrderResponse {
+        val latestPayment = orderPaymentRepository.findByOrderIdOrderByCreatedAtDesc(order.id!!)
+            .firstOrNull()
+
+        return OrderResponse(
+            id = order.id!!,
+            orderNumber = order.orderNumber,
+            adTaskId = order.adTask.id!!,
+            adTaskTitle = "AdTask #${order.adTask.id}",
+            memberId = order.member.id!!,
+            memberCompanyName = order.member.companyName ?: "",
+            memberEmail = order.member.email,
+            productName = order.productName,
+            quantity = order.quantity,
+            requirements = order.requirements,
+            deadline = order.deadline,
+            startDate = order.startDate,
+            completionDate = order.completionDate,
+            failureDate = order.failureDate,
+            progressRate = order.progressRate,
+            failureReason = order.failureReason,
+            status = order.status,
+            submittedAt = order.submittedAt,
+            reviewedAt = order.reviewedAt,
+            reviewedByName = order.reviewedBy?.companyName,
+            notes = order.notes,
+            createdAt = order.createdAt,
+            updatedAt = order.updatedAt,
+            paymentInfo = latestPayment?.let { mapToOrderPaymentInfo(it) }
+        )
+    }
+
+    private fun mapToOrderPaymentInfo(payment: OrderPayment): OrderPaymentInfo {
+        return OrderPaymentInfo(
+            id = payment.id!!,
+            applicationNumber = payment.applicationNumber,
+            paymentAmount = payment.paymentAmount,
+            depositorName = payment.depositorName,
+            paymentStatus = payment.paymentStatus,
+            bankAccountNumber = payment.bankAccountNumber,
+            bankName = payment.bankName,
+            paymentConfirmedAt = payment.paymentConfirmedAt,
+            notes = payment.notes
+        )
+    }
+
+    private fun generateOrderNumber(): String {
+        val today = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy"))
+        val count = orderRepository.count() + 1
+        return "ORD-$today-${count.toString().padStart(3, '0')}"
+    }
+
+    private fun generateApplicationNumber(): String {
+        val today = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyMMdd"))
+        val count = orderPaymentRepository.countTodayPayments() + 1
+        return "APP$today${count.toString().padStart(2, '0')}"
+    }
+
+    // 주문 수정 기능 추가
+    @Transactional
+    fun updateOrder(orderId: Long, request: OrderUpdateRequest): OrderResponse {
+        val order = orderRepository.findById(orderId).orElse(null)
+            ?: throw IllegalArgumentException("Order not found with id: $orderId")
+
+        if (!order.canBeModified()) {
+            throw IllegalStateException("Order cannot be modified in current status: ${order.status}")
+        }
+
+        val updatedOrder = order.copy(
+            deadline = request.deadline ?: order.deadline,
+            requirements = request.requirements ?: order.requirements,
+            updatedAt = LocalDateTime.now()
+        )
+
+        val savedOrder = orderRepository.save(updatedOrder)
+        return mapToOrderResponse(savedOrder)
+    }
+
+    // 통계 기능들
+    fun getMemberStatistics(memberId: Long, period: String = "thisMonth"): MemberStatistics {
+        val member = memberRepository.findById(memberId).orElse(null)
+            ?: throw IllegalArgumentException("Member not found with id: $memberId")
+
+        val (startDate, endDate) = getPeriodDates(period)
+        val orders = orderRepository.findByMemberIdAndCreatedAtBetween(memberId, startDate, endDate)
+        val allOrders = orderRepository.findByMemberIdOrderBySubmittedAtDesc(memberId)
+
+        val statusDistribution = orderRepository.getStatusDistributionByMember(memberId)
+        val monthlyTrend = orderRepository.getMonthlyTrendByMember(memberId, startDate, endDate)
+
+        return MemberStatistics(
+            memberId = memberId,
+            memberCompanyName = member.companyName ?: "",
+            memberEmail = member.email,
+            period = period,
+            periodStart = startDate.toLocalDate(),
+            periodEnd = endDate.toLocalDate(),
+            summary = StatisticsSummary(
+                totalOrders = orders.size,
+                pendingOrders = orders.count { it.status == OrderStatus.PENDING },
+                paymentWaitingOrders = orders.count { it.status == OrderStatus.PAYMENT_WAITING },
+                paymentConfirmedOrders = orders.count { it.status == OrderStatus.PAYMENT_CONFIRMED },
+                approvedOrders = orders.count { it.status == OrderStatus.APPROVED },
+                inProgressOrders = orders.count { it.status == OrderStatus.IN_PROGRESS },
+                completedOrders = orders.count { it.status == OrderStatus.COMPLETED },
+                failedOrders = orders.count { it.status == OrderStatus.FAILED },
+                cancelledOrders = orders.count { it.status == OrderStatus.CANCELLED },
+                totalOrderAmount = calculateTotalAmount(orders),
+                averageOrderAmount = if (orders.isNotEmpty()) calculateTotalAmount(orders).divide(BigDecimal(orders.size)) else BigDecimal.ZERO,
+                successRate = if (orders.isNotEmpty()) (orders.count { it.status == OrderStatus.COMPLETED }.toDouble() / orders.size * 100) else 0.0
+            ),
+            monthlyTrend = monthlyTrend.map { 
+                MonthlyTrend(
+                    month = "${it["year"]}-${String.format("%02d", it["month"])}", 
+                    totalOrders = it["totalOrders"] as Long,
+                    completedOrders = it["completedOrders"] as Long,
+                    totalAmount = BigDecimal.ZERO // TODO: 결제 정보와 연계 필요
+                )
+            },
+            statusDistribution = statusDistribution.map {
+                StatusDistribution(
+                    status = it["status"] as OrderStatus,
+                    count = it["count"] as Long,
+                    percentage = if (allOrders.isNotEmpty()) (it["count"] as Long).toDouble() / allOrders.size * 100 else 0.0
+                )
+            },
+            recentOrders = allOrders.take(5).map {
+                RecentOrder(
+                    id = it.id!!,
+                    orderNumber = it.orderNumber ?: "",
+                    productName = it.productName,
+                    status = it.status,
+                    progressRate = it.progressRate,
+                    submittedAt = it.submittedAt
+                )
+            }
+        )
+    }
+
+    fun getOverviewStatistics(period: String = "thisMonth"): OverviewStatistics {
+        val (startDate, endDate) = getPeriodDates(period)
+        val orders = orderRepository.findByCreatedAtBetween(startDate, endDate)
+        val dailyStats = orderRepository.getDailyOrderStats(startDate, endDate)
+
+        return OverviewStatistics(
+            period = period,
+            periodStart = startDate.toLocalDate(),
+            periodEnd = endDate.toLocalDate(),
+            overallSummary = OverallSummary(
+                totalOrders = orders.size,
+                totalMembers = orders.map { it.member.id }.distinct().size,
+                totalOrderAmount = calculateTotalAmount(orders),
+                averageOrderAmount = if (orders.isNotEmpty()) calculateTotalAmount(orders).divide(BigDecimal(orders.size)) else BigDecimal.ZERO,
+                successRate = if (orders.isNotEmpty()) (orders.count { it.status == OrderStatus.COMPLETED }.toDouble() / orders.size * 100) else 0.0,
+                completionRate = if (orders.isNotEmpty()) (orders.count { it.status in listOf(OrderStatus.COMPLETED, OrderStatus.IN_PROGRESS) }.toDouble() / orders.size * 100) else 0.0
+            ),
+            statusSummary = StatusSummary(
+                pendingOrders = orders.count { it.status == OrderStatus.PENDING },
+                paymentWaitingOrders = orders.count { it.status == OrderStatus.PAYMENT_WAITING },
+                paymentConfirmedOrders = orders.count { it.status == OrderStatus.PAYMENT_CONFIRMED },
+                approvedOrders = orders.count { it.status == OrderStatus.APPROVED },
+                inProgressOrders = orders.count { it.status == OrderStatus.IN_PROGRESS },
+                completedOrders = orders.count { it.status == OrderStatus.COMPLETED },
+                failedOrders = orders.count { it.status == OrderStatus.FAILED },
+                cancelledOrders = orders.count { it.status == OrderStatus.CANCELLED }
+            ),
+            dailyTrend = dailyStats.map {
+                DailyTrend(
+                    date = it["date"] as java.time.LocalDate,
+                    newOrders = it["newOrders"] as Long,
+                    completedOrders = it["completedOrders"] as Long
+                )
+            },
+            topPerformers = getTopPerformers(orders)
+        )
+    }
+
+    private fun getPeriodDates(period: String): Pair<LocalDateTime, LocalDateTime> {
+        val now = LocalDateTime.now()
+        return when (period) {
+            "thisMonth" -> {
+                val startOfMonth = now.withDayOfMonth(1).withHour(0).withMinute(0).withSecond(0).withNano(0)
+                val endOfMonth = startOfMonth.plusMonths(1)
+                startOfMonth to endOfMonth
+            }
+            "last3Months" -> {
+                val start = now.minusMonths(3).withDayOfMonth(1).withHour(0).withMinute(0).withSecond(0).withNano(0)
+                val end = now.withDayOfMonth(1).withHour(0).withMinute(0).withSecond(0).withNano(0)
+                start to end
+            }
+            "thisYear" -> {
+                val startOfYear = now.withDayOfYear(1).withHour(0).withMinute(0).withSecond(0).withNano(0)
+                val endOfYear = startOfYear.plusYears(1)
+                startOfYear to endOfYear
+            }
+            "all" -> {
+                val start = LocalDateTime.of(2020, 1, 1, 0, 0)
+                val end = now.plusDays(1)
+                start to end
+            }
+            else -> {
+                val startOfMonth = now.withDayOfMonth(1).withHour(0).withMinute(0).withSecond(0).withNano(0)
+                val endOfMonth = startOfMonth.plusMonths(1)
+                startOfMonth to endOfMonth
+            }
+        }
+    }
+
+    private fun calculateTotalAmount(orders: List<Order>): BigDecimal {
+        return orders.mapNotNull { order ->
+            orderPaymentRepository.findByOrderIdOrderByCreatedAtDesc(order.id!!)
+                .firstOrNull()?.paymentAmount
+        }.fold(BigDecimal.ZERO) { acc, amount -> acc.add(amount) }
+    }
+
+    private fun getTopPerformers(orders: List<Order>): List<TopPerformer> {
+        return orders.groupBy { it.member }
+            .mapValues { (member, memberOrders) ->
+                TopPerformer(
+                    memberId = member.id!!,
+                    memberCompanyName = member.companyName ?: "",
+                    totalOrders = memberOrders.size,
+                    completedOrders = memberOrders.count { it.status == OrderStatus.COMPLETED },
+                    totalAmount = calculateTotalAmount(memberOrders)
+                )
+            }
+            .values
+            .sortedByDescending { it.totalAmount }
+            .take(10)
+    }
+
+    @Transactional
+    fun createTestOrderWithRound(roundId: Int, request: OrderCreateRequest): List<OrderResponse> {
+        val round = roundRepository.findById(roundId.toLong()).orElse(null)
+            ?: throw IllegalArgumentException("Round not found with id: $roundId")
+        
+        val adTasks = adTaskRepository.findByRoundAndAdIndex(round, 1)
+        if (adTasks.isEmpty()) {
+            throw IllegalArgumentException("No AdTask with ad_index=1 found for round: $roundId")
+        }
+
+        val orders = adTasks.map { adTask ->
+            val orderNumber = generateOrderNumber()
+            
+            val order = Order(
+                orderNumber = orderNumber,
+                adTask = adTask,
+                member = adTask.member,
+                productName = request.productName,
+                quantity = request.quantity,
+                requirements = request.requirements,
+                deadline = request.deadline,
+                status = OrderStatus.PENDING
+            )
+            
+            orderRepository.save(order)
+        }
+
+        return orders.map { mapToOrderResponse(it) }
+    }
+
+    @Transactional
+    fun createTestPaymentWithRound(roundId: Int, request: TestPaymentCreateRequest): List<OrderPaymentInfo> {
+        val round = roundRepository.findById(roundId.toLong()).orElse(null)
+            ?: throw IllegalArgumentException("Round not found with id: $roundId")
+        
+        val adTasks = adTaskRepository.findByRoundAndAdIndex(round, 1)
+        if (adTasks.isEmpty()) {
+            throw IllegalArgumentException("No AdTask with ad_index=1 found for round: $roundId")
+        }
+
+        val payments = adTasks.mapNotNull { adTask ->
+            val order = orderRepository.findByAdTaskId(adTask.id!!)
+            
+            if (order == null) {
+                println("Warning: Order not found for AdTask with id: ${adTask.id}")
+                return@mapNotNull null
+            }
+
+            if (order.status != OrderStatus.PENDING) {
+                println("Warning: Order ${order.id} is not in PENDING status. Current status: ${order.status}")
+                return@mapNotNull null
+            }
+
+            val applicationNumber = generateApplicationNumber()
+            
+            val payment = OrderPayment(
+                order = order,
+                applicationNumber = applicationNumber,
+                paymentAmount = request.paymentAmount,
+                depositorName = request.depositorName,
+                bankAccountNumber = request.bankAccountNumber,
+                bankName = request.bankName,
+                notes = request.notes,
+                paymentStatus = PaymentStatus.WAITING
+            )
+
+            val savedPayment = orderPaymentRepository.save(payment)
+            updateOrderStatus(order.id!!, OrderStatusUpdateRequest(OrderStatus.PAYMENT_WAITING))
+            
+            mapToOrderPaymentInfo(savedPayment)
+        }
+
+        if (payments.isEmpty()) {
+            throw IllegalStateException("No valid orders found to create payments for round: $roundId")
+        }
+
+        return payments
+    }
+
+    @Transactional
+    fun confirmAllPaymentsByRound(roundId: Int, notes: String = "라운드별 일괄 입금 확인"): List<OrderPaymentInfo> {
+        val round = roundRepository.findById(roundId.toLong()).orElse(null)
+            ?: throw IllegalArgumentException("Round not found with id: $roundId")
+        
+        val adTasks = adTaskRepository.findByRoundAndAdIndex(round, 1)
+        if (adTasks.isEmpty()) {
+            throw IllegalArgumentException("No AdTask with ad_index=1 found for round: $roundId")
+        }
+
+        val confirmedPayments = adTasks.mapNotNull { adTask ->
+            val order = orderRepository.findByAdTaskId(adTask.id!!)
+            
+            if (order == null) {
+                println("Warning: Order not found for AdTask with id: ${adTask.id}")
+                return@mapNotNull null
+            }
+
+            val payment = orderPaymentRepository.findByOrderIdOrderByCreatedAtDesc(order.id!!)
+                .firstOrNull()
+            
+            if (payment == null) {
+                println("Warning: Payment not found for Order with id: ${order.id}")
+                return@mapNotNull null
+            }
+
+            if (payment.paymentStatus == PaymentStatus.CONFIRMED) {
+                println("Info: Payment ${payment.id} is already confirmed")
+                return@mapNotNull mapToOrderPaymentInfo(payment)
+            }
+
+            if (payment.paymentStatus != PaymentStatus.WAITING) {
+                println("Warning: Payment ${payment.id} is not in WAITING status. Current status: ${payment.paymentStatus}")
+                return@mapNotNull null
+            }
+
+            val updatedPayment = payment.copy(
+                paymentStatus = PaymentStatus.CONFIRMED,
+                notes = notes,
+                paymentConfirmedAt = LocalDateTime.now(),
+                updatedAt = LocalDateTime.now()
+            )
+
+            val savedPayment = orderPaymentRepository.save(updatedPayment)
+            updateOrderStatus(order.id!!, OrderStatusUpdateRequest(OrderStatus.PAYMENT_CONFIRMED))
+            
+            mapToOrderPaymentInfo(savedPayment)
+        }
+
+        if (confirmedPayments.isEmpty()) {
+            throw IllegalStateException("No valid payments found to confirm for round: $roundId")
+        }
+
+        return confirmedPayments
+    }
+
+    fun getRoundInfo(roundId: Int): RoundInfoResponse {
+        val round = roundRepository.findById(roundId.toLong()).orElse(null)
+            ?: throw IllegalArgumentException("Round not found with id: $roundId")
+        
+        val adTasks = adTaskRepository.findByRoundAndAdIndex(round, 1)
+        
+        val adTaskInfos = adTasks.map { adTask ->
+            AdTaskInfo(
+                id = adTask.id!!,
+                memberId = adTask.member.id!!,
+                memberEmail = adTask.member.email,
+                memberCompanyName = adTask.member.companyName,
+                adType = adTask.adType,
+                adIndex = adTask.adIndex,
+                taskStatus = adTask.status.name,
+                webUrl = adTask.webUrl,
+                createdAt = adTask.createdAt
+            )
+        }
+        
+        val orders = adTasks.mapNotNull { adTask ->
+            orderRepository.findByAdTaskId(adTask.id!!)
+        }
+        
+        val orderInfos = orders.map { order ->
+            OrderInfo(
+                id = order.id!!,
+                orderNumber = order.orderNumber,
+                adTaskId = order.adTask.id!!,
+                memberId = order.member.id!!,
+                memberEmail = order.member.email,
+                memberCompanyName = order.member.companyName,
+                productName = order.productName,
+                quantity = order.quantity,
+                status = order.status.name,
+                submittedAt = order.submittedAt,
+                createdAt = order.createdAt
+            )
+        }
+        
+        val payments = orders.flatMap { order ->
+            orderPaymentRepository.findByOrderIdOrderByCreatedAtDesc(order.id!!)
+        }
+        
+        val paymentInfos = payments.map { payment ->
+            PaymentInfo(
+                id = payment.id!!,
+                orderId = payment.order.id!!,
+                applicationNumber = payment.applicationNumber,
+                paymentAmount = payment.paymentAmount,
+                depositorName = payment.depositorName,
+                paymentStatus = payment.paymentStatus.name,
+                bankName = payment.bankName,
+                bankAccountNumber = payment.bankAccountNumber,
+                paymentConfirmedAt = payment.paymentConfirmedAt,
+                createdAt = payment.createdAt
+            )
+        }
+        
+        return RoundInfoResponse(
+            roundId = roundId.toLong(),
+            roundTitle = round.title ?: "Round #$roundId",
+            adTasks = adTaskInfos,
+            orders = orderInfos,
+            payments = paymentInfos
+        )
+    }
+
+    fun getRoundKeys(roundId: Int): RoundKeysResponse {
+        val round = roundRepository.findById(roundId.toLong()).orElse(null)
+            ?: throw IllegalArgumentException("Round not found with id: $roundId")
+        
+        val adTasks = adTaskRepository.findByRoundAndAdIndex(round, 1)
+        
+        val memberKeys = adTasks.map { adTask ->
+            val order = orderRepository.findByAdTaskId(adTask.id!!)
+            val payments = order?.let { 
+                orderPaymentRepository.findByOrderIdOrderByCreatedAtDesc(it.id!!)
+            } ?: emptyList()
+            
+            MemberKeys(
+                memberId = adTask.member.id!!,
+                memberEmail = adTask.member.email,
+                memberCompanyName = adTask.member.companyName,
+                adTaskId = adTask.id,
+                orderId = order?.id,
+                paymentIds = payments.mapNotNull { it.id }
+            )
+        }
+        
+        return RoundKeysResponse(
+            roundId = roundId.toLong(),
+            roundTitle = round.title ?: "Round #$roundId",
+            members = memberKeys
+        )
+    }
+}

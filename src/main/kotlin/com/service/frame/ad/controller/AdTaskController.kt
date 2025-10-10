@@ -7,7 +7,6 @@ import com.service.frame.ad.entity.AdTaskStatus
 import com.service.frame.ad.service.AdQueueService
 import com.service.frame.ad.service.AdTaskService
 import com.service.frame.round.repository.RoundRepository
-import org.springframework.data.repository.findByIdOrNull
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
 
@@ -73,7 +72,7 @@ class AdTaskController(
      */
     @GetMapping("/rounds/{roundId}/statistics")
     fun getRoundAdTaskStatistics(@PathVariable roundId: Long): ResponseEntity<Map<String, Any>> {
-        val round = roundRepository.findByIdOrNull(roundId)
+        val round = roundRepository.findById(roundId).orElse(null)
             ?: return ResponseEntity.notFound().build()
 
         val statistics = adQueueService.getRoundTaskStatistics(round)
@@ -134,7 +133,7 @@ class AdTaskController(
      */
     @PostMapping("/rounds/{roundId}/enqueue-pending")
     fun enqueuePendingTasks(@PathVariable roundId: Long): ResponseEntity<Map<String, Any>> {
-        val round = roundRepository.findByIdOrNull(roundId)
+        val round = roundRepository.findById(roundId).orElse(null)
             ?: return ResponseEntity.notFound().build()
 
         try {
@@ -149,6 +148,35 @@ class AdTaskController(
             ))
         }
     }
+
+    /**
+     * 테스트용 ad_task 생성 API (여러 멤버에 대해 각각 3개의 광고를 자동 생성)
+     */
+    @PostMapping("/test-data")
+    fun createTestAdTask(@RequestBody request: CreateTestAdTaskRequest): ResponseEntity<Map<String, Any>> {
+        return try {
+            val allAdTasks = adTaskService.createTestAdTasksForMembers(request)
+            val memberTasksMap = allAdTasks.groupBy { it.member.id }
+            
+            ResponseEntity.ok(mapOf<String, Any>(
+                "message" to "Test ad tasks created successfully for ${request.memberIds.size} members",
+                "totalCount" to allAdTasks.size,
+                "membersCount" to request.memberIds.size,
+                "roundId" to (allAdTasks.firstOrNull()?.round?.id ?: 0L),
+                "memberTasks" to memberTasksMap.map { (memberId, tasks) ->
+                    mapOf(
+                        "memberId" to memberId,
+                        "adTaskIds" to tasks.map { it.id ?: 0L },
+                        "adTypes" to tasks.map { "${it.adType}_${it.adIndex}" }
+                    )
+                }
+            ))
+        } catch (e: Exception) {
+            ResponseEntity.badRequest().body(mapOf<String, Any>(
+                "error" to "Failed to create test ad tasks: ${e.message}"
+            ))
+        }
+    }
 }
 
 data class TaskStatusUpdateRequest(
@@ -159,4 +187,14 @@ data class TaskStatusUpdateRequest(
 
 data class RetryTaskRequest(
     val errorMessage: String? = null
+)
+
+data class CreateTestAdTaskRequest(
+    val roundId: Long,
+    val memberIds: List<Long>,
+    val taskStatus: String = "COMPLETED",
+    val adContent: String? = null,
+    val htmlFilePath: String? = null,
+    val webUrl: String? = null,
+    val adType: String = "interactive",
 )

@@ -1,7 +1,7 @@
 package com.service.frame.order.entity
 
 import com.service.frame.member.entity.Member
-import com.service.frame.round.entity.Round
+import com.service.frame.ad.entity.AdTask
 import java.math.BigDecimal
 import java.time.LocalDate
 import java.time.LocalDateTime
@@ -18,8 +18,8 @@ data class Order(
     val orderNumber: String? = null,
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "round_id", nullable = false)
-    val round: Round = Round(),
+    @JoinColumn(name = "ad_task_id", nullable = false)
+    val adTask: AdTask = AdTask(),
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "member_id", nullable = false)
@@ -73,8 +73,46 @@ data class Order(
     val createdAt: LocalDateTime = LocalDateTime.now(),
 
     @Column(name = "updated_at", nullable = false)
-    val updatedAt: LocalDateTime = LocalDateTime.now()
-)
+    val updatedAt: LocalDateTime = LocalDateTime.now(),
+
+    @OneToMany(mappedBy = "order", cascade = [CascadeType.ALL], fetch = FetchType.LAZY)
+    val payments: List<OrderPayment> = emptyList()
+) {
+    fun updateStatus(newStatus: OrderStatus, notes: String? = null, progressRate: Int? = null, failureReason: String? = null, reviewedBy: Member? = null): Order {
+        return this.copy(
+            status = newStatus,
+            notes = notes ?: this.notes,
+            progressRate = progressRate ?: this.progressRate,
+            failureReason = failureReason ?: this.failureReason,
+            reviewedAt = if (newStatus != OrderStatus.PENDING) LocalDateTime.now() else this.reviewedAt,
+            reviewedBy = reviewedBy ?: this.reviewedBy,
+            startDate = if (newStatus == OrderStatus.IN_PROGRESS && this.startDate == null) LocalDate.now() else this.startDate,
+            completionDate = if (newStatus == OrderStatus.COMPLETED) LocalDate.now() else this.completionDate,
+            failureDate = if (newStatus == OrderStatus.FAILED) LocalDate.now() else this.failureDate,
+            updatedAt = LocalDateTime.now()
+        )
+    }
+
+    fun updateInfo(deadline: LocalDate? = null, requirements: String? = null): Order {
+        return this.copy(
+            deadline = deadline ?: this.deadline,
+            requirements = requirements ?: this.requirements,
+            updatedAt = LocalDateTime.now()
+        )
+    }
+
+    fun canBeModified(): Boolean {
+        return status in listOf(OrderStatus.PENDING, OrderStatus.PAYMENT_WAITING)
+    }
+
+    fun canBeCancelled(): Boolean {
+        return status !in listOf(OrderStatus.COMPLETED, OrderStatus.FAILED, OrderStatus.CANCELLED)
+    }
+
+    fun getCurrentPayment(): OrderPayment? {
+        return payments.maxByOrNull { it.createdAt }
+    }
+}
 
 enum class OrderStatus {
     PENDING,            // 대기

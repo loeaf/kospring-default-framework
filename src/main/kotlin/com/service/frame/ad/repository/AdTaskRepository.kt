@@ -50,4 +50,12 @@ interface AdTaskRepository : JpaRepository<AdTask, Long> {
     // 특정 회원의 완료된 광고만 조회
     @Query("SELECT at FROM AdTask at WHERE at.member.id = :memberId AND at.status = 'COMPLETED' AND at.adContent IS NOT NULL ORDER BY at.completedAt DESC")
     fun findCompletedAdsByMemberId(@Param("memberId") memberId: Long): List<AdTask>
+    
+    // 라운드 ID로 AdTask 조회
+    @Query("SELECT at FROM AdTask at WHERE at.round.id = :roundId")
+    fun findByRoundId(@Param("roundId") roundId: Long): List<AdTask>
+    
+    // 라운드와 ad_index로 AdTask 조회
+    @Query("SELECT at FROM AdTask at WHERE at.round = :round AND at.adIndex = :adIndex")
+    fun findByRoundAndAdIndex(@Param("round") round: Round, @Param("adIndex") adIndex: Int): List<AdTask>
 }

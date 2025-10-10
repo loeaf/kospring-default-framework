@@ -10,7 +10,6 @@ import com.service.frame.round.repository.RoundRepository
 import org.slf4j.LoggerFactory
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
-import org.springframework.data.repository.findByIdOrNull
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import javax.persistence.EntityManager
@@ -28,7 +27,7 @@ class RoundServiceImpl(
     private val logger = LoggerFactory.getLogger(RoundServiceImpl::class.java)
 
     override fun createRound(request: RoundCreateRequest, createdById: Long): RoundResponse {
-        val creator = memberRepository.findByIdOrNull(createdById) 
+        val creator = memberRepository.findById(createdById).orElse(null) 
             ?: throw IllegalArgumentException("Member not found with id: $createdById")
 
         val round = Round(
@@ -85,7 +84,7 @@ class RoundServiceImpl(
 
     @Transactional(readOnly = true)
     override fun getRoundById(id: Long): RoundResponse {
-        val round = roundRepository.findByIdOrNull(id)
+        val round = roundRepository.findById(id).orElse(null)
             ?: throw IllegalArgumentException("Round not found with id: $id")
         
         return RoundResponse.from(round)
