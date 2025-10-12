@@ -26,7 +26,7 @@
 
 **Request**:
 ```bash
-curl -X GET "http://localhost:8080/api/advertisement-posts/members/23/posts"
+curl -X GET "http://localhost:8080/api/advertisement-posts/members/20/posts"
 ```
 
 **Response**:
@@ -45,8 +45,8 @@ curl -X GET "http://localhost:8080/api/advertisement-posts/members/23/posts"
       "advertiserCompanyName": "광고주 회사",
       "adTaskId": 47,
       "revenuePerPost": 50000.00,
-      "assignmentStatus": "ASSIGNED",
-      "postContent": "초안 내용...",
+      "assignmentStatus": "IN_PROGRESS",
+      "postContent": "훌륭한 광고 콘텐츠입니다. 이 제품은 정말 혁신적이며...",
       "postStatus": "PENDING",
       "ctrRate": null,
       "finalRevenue": null,
@@ -162,15 +162,13 @@ curl -X GET "http://localhost:8080/api/advertisement-posts/assignments/456/post"
 
 ## 5. 포스트 내용 작성/수정
 
-**Endpoint**: `PUT /posts/{postId}/content`
+**Endpoint**: `PUT /api/advertisement-posts/members/{memberId}/posts/{postId}/content`
 
 **설명**: 포스트의 내용을 작성하거나 수정합니다. (Publisher만 가능)
 
 **Path Parameters**:
+- `memberId` (Long, required): Publisher Member ID
 - `postId` (Long, required): Post ID
-
-**Query Parameters**:
-- `userId` (Long, required): Publisher Member ID
 
 **Headers**:
 ```
@@ -187,7 +185,7 @@ Content-Type: application/json
 
 **Request**:
 ```bash
-curl -X PUT "http://localhost:8080/api/advertisement-posts/posts/123/content?userId=1" \
+curl -X PUT "http://localhost:8080/api/advertisement-posts/members/1/posts/123/content" \
   -H "Content-Type: application/json" \
   -d '{
     "content": "훌륭한 광고 콘텐츠입니다...",
@@ -197,19 +195,35 @@ curl -X PUT "http://localhost:8080/api/advertisement-posts/posts/123/content?use
 
 **Response**: 포스트 상세 정보 (위 3번과 동일한 형식)
 
+**⚠️ 중요 동작**: 포스트 내용을 수정하면 다음과 같이 자동 업데이트됩니다:
+- **포스트 상태**: `PENDING`으로 변경 (재승인 필요)
+- **할당 상태**: 
+  - 최초 작성 시: `WRITTEN` (작성완료)
+  - 수정 시: `IN_PROGRESS` (작업 진행 중)
+
+**Response Example**:
+```json
+{
+  "id": 123,
+  "assignmentId": 456,
+  "content": "훌륭한 광고 콘텐츠입니다. 이 제품은 정말 혁신적이며...",
+  "postStatus": "PENDING",
+  "notes": "초안 작성 완료, 검토 요청",
+  "updatedAt": "2024-01-02T10:30:00"
+}
+```
+
 ---
 
 ## 6. 포스트 상태 변경
 
-**Endpoint**: `PUT /posts/{postId}/status`
+**Endpoint**: `PUT /api/advertisement-posts/members/{memberId}/posts/{postId}/status`
 
 **설명**: 포스트의 상태를 변경합니다.
 
 **Path Parameters**:
+- `memberId` (Long, required): Member ID
 - `postId` (Long, required): Post ID
-
-**Query Parameters**:
-- `userId` (Long, required): User ID
 
 **Headers**:
 ```
@@ -239,7 +253,7 @@ Content-Type: application/json
 
 **Request**:
 ```bash
-curl -X PUT "http://localhost:8080/api/advertisement-posts/posts/123/status?userId=1" \
+curl -X PUT "http://localhost:8080/api/advertisement-posts/members/1/posts/123/status" \
   -H "Content-Type: application/json" \
   -d '{
     "postStatus": "PUBLISHED",
@@ -267,12 +281,13 @@ curl -X PUT "http://localhost:8080/api/advertisement-posts/posts/123/status?user
 
 ## 할당 상태(Assignment Status) 정보
 
-| 상태 | 설명 |
-|------|------|
-| `ASSIGNED` | 할당 완료 |
-| `IN_PROGRESS` | 작업 진행 중 |
-| `COMPLETED` | 완료 |
-| `FAILED` | 실패 |
+| 상태 | 설명 | 프론트엔드 필터 |
+|------|------|----------------|
+| `ASSIGNED` | 할당 완료 | pending (작성대기) |
+| `IN_PROGRESS` | 작업 진행 중 | pending (작성대기) |
+| `WRITTEN` | 작성 완료 | written (작성완료) |
+| `COMPLETED` | 완료 | completed (작업완료) |
+| `FAILED` | 실패 | failed (게시실패) |
 
 ---
 
@@ -280,13 +295,13 @@ curl -X PUT "http://localhost:8080/api/advertisement-posts/posts/123/status?user
 
 ### Publisher 워크플로우:
 1. **할당 확인**: `GET /members/{memberId}/posts`로 할당받은 포스트 확인
-2. **내용 작성**: `PUT /posts/{postId}/content`로 포스트 내용 작성
+2. **내용 작성**: `PUT /members/{memberId}/posts/{postId}/content`로 포스트 내용 작성
 3. **승인 대기**: 관리자의 승인 대기
-4. **게시**: `PUT /posts/{postId}/status`로 `PUBLISHED` 상태로 변경
+4. **게시**: `PUT /members/{memberId}/posts/{postId}/status`로 `PUBLISHED` 상태로 변경
 5. **실적 입력**: CTR, 최종 수익 등 업데이트
 
 ### Admin 워크플로우:
-1. **승인/거부**: `PUT /posts/{postId}/status`로 `APPROVED` 또는 `REJECTED`
+1. **승인/거부**: `PUT /members/{memberId}/posts/{postId}/status`로 `APPROVED` 또는 `REJECTED`
 2. **모니터링**: 게시된 포스트의 성과 추적
 3. **문제 처리**: 필요시 `FAILED` 상태로 변경
 
@@ -324,7 +339,7 @@ curl -X PUT "http://localhost:8080/api/advertisement-posts/posts/123/status?user
 
 ### 포스트 거부 (관리자)
 ```bash
-curl -X PUT "http://localhost:8080/api/advertisement-posts/posts/123/status?userId=10" \
+curl -X PUT "http://localhost:8080/api/advertisement-posts/members/10/posts/123/status" \
   -H "Content-Type: application/json" \
   -d '{
     "postStatus": "REJECTED",
@@ -335,7 +350,7 @@ curl -X PUT "http://localhost:8080/api/advertisement-posts/posts/123/status?user
 
 ### 게시 실패 처리 (관리자)
 ```bash
-curl -X PUT "http://localhost:8080/api/advertisement-posts/posts/123/status?userId=10" \
+curl -X PUT "http://localhost:8080/api/advertisement-posts/members/10/posts/123/status" \
   -H "Content-Type: application/json" \
   -d '{
     "postStatus": "FAILED",

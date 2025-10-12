@@ -14,7 +14,7 @@ data class AdvertisementPost(
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "assignment_id", nullable = false)
-    val assignment: AdvertisementAssignment? = null,
+    var assignment: AdvertisementAssignment? = null,
 
     @Column(name = "content", columnDefinition = "TEXT")
     val content: String? = null,

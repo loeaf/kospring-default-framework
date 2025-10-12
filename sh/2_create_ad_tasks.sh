@@ -9,7 +9,7 @@ echo "Creating test ad_task with your sample data..."
     -H "Content-Type: application/json" \
     -d '{
       "roundId": 33,
-      "memberIds": [17, 16, 19, 20, 21, 22, 23],
+      "memberIds": [17, 16, 19, 20, 21, 22],
       "taskStatus": "COMPLETED",
       "adContent": "Sample HTML content for test ads",
       "adType": "interactive"

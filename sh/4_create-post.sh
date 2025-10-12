@@ -14,14 +14,14 @@ echo -e "\n\n"
 
 # 포스트 상태 변경 - 승인
 echo "=== 3. 모든 포스트 승인 ==="
-curl -X PUT "http://localhost:8080/api/advertisement-posts/test/rounds/32/status/APPROVED" \
+curl -X PUT "http://localhost:8080/api/advertisement-posts/test/rounds/33/status/APPROVED" \
   -H "Content-Type: application/json"
 
 echo -e "\n\n"
 
 # 주문 진행률 확인 (승인 후)
 echo "=== 3-1. 주문 진행률 업데이트 (승인 후) ==="
-curl -X PUT "http://localhost:8080/api/orders/round/32/update-progress" \
+curl -X PUT "http://localhost:8080/api/orders/round/33/update-progress" \
   -H "Content-Type: application/json"
 
 echo -e "\n\n"

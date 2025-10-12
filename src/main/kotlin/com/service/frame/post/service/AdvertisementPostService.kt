@@ -87,6 +87,22 @@ class AdvertisementPostService(
         )
         
         val savedPost = postRepository.save(updatedPost)
+        
+        // Assignment 상태 업데이트 (최초 작성 vs 수정 구분)
+        savedPost.assignment?.let { assignment ->
+            val newAssignmentStatus = if (post.content.isNullOrBlank()) {
+                com.service.frame.post.entity.AssignmentStatus.WRITTEN
+            } else {
+                com.service.frame.post.entity.AssignmentStatus.WRITTEN
+            }
+            
+            val updatedAssignment = assignment.copy(
+                assignmentStatus = newAssignmentStatus,
+                updatedAt = LocalDateTime.now()
+            )
+            assignmentRepository.save(updatedAssignment)
+        }
+        
         return mapToPostDetailResponse(savedPost)
     }
     
@@ -119,6 +135,24 @@ class AdvertisementPostService(
         )
         
         val savedPost = postRepository.save(updatedPost)
+        
+        // 포스트 상태에 따라 Assignment 상태도 업데이트
+        savedPost.assignment?.let { assignment ->
+            val newAssignmentStatus = when (newStatus) {
+                AdvertisementPostStatus.APPROVED -> com.service.frame.post.entity.AssignmentStatus.COMPLETED
+                AdvertisementPostStatus.PUBLISHED -> com.service.frame.post.entity.AssignmentStatus.COMPLETED
+                AdvertisementPostStatus.FAILED -> com.service.frame.post.entity.AssignmentStatus.FAILED
+                else -> assignment.assignmentStatus // 다른 상태는 그대로 유지
+            }
+            
+            if (newAssignmentStatus != assignment.assignmentStatus) {
+                val updatedAssignment = assignment.copy(
+                    assignmentStatus = newAssignmentStatus,
+                    updatedAt = now
+                )
+                assignmentRepository.save(updatedAssignment)
+            }
+        }
         
         // 포스트 상태가 PUBLISHED로 변경되었을 때 주문 진행률 업데이트
         if (newStatus == AdvertisementPostStatus.PUBLISHED) {
@@ -301,7 +335,7 @@ class AdvertisementPostService(
             }
         
         if (posts.isEmpty()) {
-            throw IllegalArgumentException("No posts found for round: $roundId")
+            return emptyList()
         }
         
         val newStatus = AdvertisementPostStatus.valueOf(targetStatus)
@@ -320,7 +354,27 @@ class AdvertisementPostService(
                 updatedAt = now
             )
             
-            postRepository.save(updatedPost)
+            val savedPost = postRepository.save(updatedPost)
+            
+            // 포스트 상태에 따라 Assignment 상태도 업데이트
+            savedPost.assignment?.let { assignment ->
+                val newAssignmentStatus = when (newStatus) {
+                    AdvertisementPostStatus.APPROVED -> com.service.frame.post.entity.AssignmentStatus.COMPLETED
+                    AdvertisementPostStatus.PUBLISHED -> com.service.frame.post.entity.AssignmentStatus.COMPLETED
+                    AdvertisementPostStatus.FAILED -> com.service.frame.post.entity.AssignmentStatus.FAILED
+                    else -> assignment.assignmentStatus // 다른 상태는 그대로 유지
+                }
+                
+                if (newAssignmentStatus != assignment.assignmentStatus) {
+                    val updatedAssignment = assignment.copy(
+                        assignmentStatus = newAssignmentStatus,
+                        updatedAt = now
+                    )
+                    assignmentRepository.save(updatedAssignment)
+                }
+            }
+            
+            savedPost
         }
         
         // 상태 변경 후 주문 진행률 업데이트

@@ -79,6 +79,32 @@ class AdvertisementPostController(
     }
 
     /**
+     * 포스트 내용 작성/수정 (RESTful)
+     */
+    @PutMapping("/members/{memberId}/posts/{postId}/content")
+    fun updatePostContentRestful(
+        @PathVariable memberId: Long,
+        @PathVariable postId: Long,
+        @RequestBody request: PostContentUpdateRequest
+    ): ResponseEntity<PostDetailResponse> {
+        val result = advertisementPostService.updatePostContent(postId, request, memberId)
+        return ResponseEntity.ok(result)
+    }
+
+    /**
+     * 포스트 상태 변경 (RESTful)
+     */
+    @PutMapping("/members/{memberId}/posts/{postId}/status")
+    fun updatePostStatusRestful(
+        @PathVariable memberId: Long,
+        @PathVariable postId: Long,
+        @RequestBody request: PostStatusUpdateRequest
+    ): ResponseEntity<PostDetailResponse> {
+        val result = advertisementPostService.updatePostStatus(postId, request, memberId)
+        return ResponseEntity.ok(result)
+    }
+
+    /**
      * 테스트용 API - 라운드의 모든 할당에 대해 포스트 일괄 생성
      */
     @PostMapping("/test/rounds/{roundId}/create-all")

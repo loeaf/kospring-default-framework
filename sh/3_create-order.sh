@@ -1,6 +1,6 @@
 
 #!/bin/bash
-# 새로운 테스트 방식 - 라운드 ID로 ad_index=1인 AdTask 자동 선택
+# ad_task 정보를 order로 옮김 (이체)
 echo "=== 새로운 테스트 방식 - 라운드 ID로 자동 선택 ==="
 curl -X POST "http://localhost:8080/api/orders/test/round/33" \
   -H "Content-Type: application/json" \
@@ -13,27 +13,13 @@ curl -X POST "http://localhost:8080/api/orders/test/round/33" \
 
 echo -e "\n\n"
 
-# 기존 방식 결제 생성
-echo "=== 기존 방식 - orderId로 결제 생성 ==="
-curl -X POST "http://localhost:8080/api/orders/payments" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "orderId": 8,
-    "paymentAmount": 50000.00,
-    "depositorName": "테스트 회사",
-    "bankAccountNumber": "123-456-789",
-    "bankName": "국민은행",
-    "notes": "입금 예정"
-  }'
-
-echo -e "\n\n"
-
-# 새로운 테스트 방식 결제 생성 - 라운드 ID로 자동 주문 찾아서 결제 생성
+# order의 정보를
 echo "=== 새로운 테스트 방식 - 라운드 ID로 자동 결제 생성 ==="
-curl -X POST "http://localhost:8080/api/orders/test/payments/round/32" \
+curl -X POST "http://localhost:8080/api/orders/test/payments/round/33" \
   -H "Content-Type: application/json" \
   -d '{
     "paymentAmount": 50000.00,
+
     "depositorName": "테스트 회사",
     "bankAccountNumber": "123-456-789",
     "bankName": "국민은행",
@@ -43,15 +29,15 @@ curl -X POST "http://localhost:8080/api/orders/test/payments/round/32" \
 echo -e "\n\n"
 
 # 새로운 테스트 방식 결제 승인 - 라운드 ID로 모든 결제 일괄 승인
-echo "=== 새로운 테스트 방식 - 라운드 ID로 일괄 결제 승인 ==="
-curl -X PUT "http://localhost:8080/api/orders/test/payments/round/32/confirm-all" \
+echo "=== 새로운 테스트 방식 - 라운드 ID로 수정완료 승인 ==="
+curl -X PUT "http://localhost:8080/api/orders/test/payments/round/33/confirm-all" \
   -H "Content-Type: application/json"
 
 echo -e "\n\n"
 
 # 입금 확인 완료 후 광고 게시중 상태로 변경
 echo "=== 입금 확인 완료 후 광고 게시중 상태로 변경 ==="
-curl -X PUT "http://localhost:8080/api/orders/round/32/start-advertising" \
+curl -X PUT "http://localhost:8080/api/orders/round/33/start-advertising" \
   -H "Content-Type: application/json"
 
 echo -e "\n\n"

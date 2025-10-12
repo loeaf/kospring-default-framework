@@ -46,7 +46,7 @@ data class Assignment(
 
 enum class AssignmentStatus {
     ASSIGNED,       // 할당됨
-    IN_PROGRESS,    // 진행중
+    WRITTEN,    // 진행중
     COMPLETED,      // 완료
     FAILED          // 실패
 }

@@ -18,12 +18,12 @@ class PostController(
     private val postService: PostService
 ) {
 
-    @PostMapping
+    @PostMapping("/members/{memberId}/posts")
     fun createPost(
-        @RequestHeader("X-User-Id") authorId: Long,
+        @PathVariable memberId: Long,
         @Valid @RequestBody request: PostCreateRequest
     ): ResponseEntity<PostResponse> {
-        val post = postService.createPost(authorId, request)
+        val post = postService.createPost(memberId, request)
         return ResponseEntity.status(HttpStatus.CREATED).body(post)
     }
 
@@ -36,22 +36,22 @@ class PostController(
         return ResponseEntity.ok(post)
     }
 
-    @PutMapping("/{id}")
+    @PutMapping("/members/{memberId}/posts/{postId}")
     fun updatePost(
-        @PathVariable id: Long,
-        @RequestHeader("X-User-Id") authorId: Long,
+        @PathVariable memberId: Long,
+        @PathVariable postId: Long,
         @Valid @RequestBody request: PostUpdateRequest
     ): ResponseEntity<PostResponse> {
-        val post = postService.updatePost(id, authorId, request)
+        val post = postService.updatePost(postId, memberId, request)
         return ResponseEntity.ok(post)
     }
 
-    @DeleteMapping("/{id}")
+    @DeleteMapping("/members/{memberId}/posts/{postId}")
     fun deletePost(
-        @PathVariable id: Long,
-        @RequestHeader("X-User-Id") authorId: Long
+        @PathVariable memberId: Long,
+        @PathVariable postId: Long
     ): ResponseEntity<Void> {
-        postService.deletePost(id, authorId)
+        postService.deletePost(postId, memberId)
         return ResponseEntity.noContent().build()
     }
 
@@ -115,31 +115,31 @@ class PostController(
         return ResponseEntity.ok(posts)
     }
 
-    @PostMapping("/{id}/publish")
+    @PostMapping("/members/{memberId}/posts/{postId}/publish")
     fun publishPost(
-        @PathVariable id: Long,
-        @RequestHeader("X-User-Id") authorId: Long
+        @PathVariable memberId: Long,
+        @PathVariable postId: Long
     ): ResponseEntity<PostResponse> {
-        val post = postService.publishPost(id, authorId)
+        val post = postService.publishPost(postId, memberId)
         return ResponseEntity.ok(post)
     }
 
-    @PostMapping("/{id}/reject")
+    @PostMapping("/members/{reviewerId}/posts/{postId}/reject")
     fun rejectPost(
-        @PathVariable id: Long,
-        @RequestHeader("X-User-Id") reviewerId: Long,
+        @PathVariable reviewerId: Long,
+        @PathVariable postId: Long,
         @RequestParam reason: String
     ): ResponseEntity<PostResponse> {
-        val post = postService.rejectPost(id, reviewerId, reason)
+        val post = postService.rejectPost(postId, reviewerId, reason)
         return ResponseEntity.ok(post)
     }
 
-    @PostMapping("/{id}/approve")
+    @PostMapping("/members/{reviewerId}/posts/{postId}/approve")
     fun approvePost(
-        @PathVariable id: Long,
-        @RequestHeader("X-User-Id") reviewerId: Long
+        @PathVariable reviewerId: Long,
+        @PathVariable postId: Long
     ): ResponseEntity<PostResponse> {
-        val post = postService.approvePost(id, reviewerId)
+        val post = postService.approvePost(postId, reviewerId)
         return ResponseEntity.ok(post)
     }
 
