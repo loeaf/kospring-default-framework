@@ -23,7 +23,7 @@ GET /api/revenue/list
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
 | memberId | Long | Yes | 회원 ID |
-| type | String | No | 수익 타입 (SALES, PURCHASES) |
+| transactionType | String | No | 거래 타입 (INCOME, EXPENSE) |
 | period | String | No | 조회 기간 (WEEK, MONTH, QUARTER, YEAR) |
 
 #### Response
@@ -31,38 +31,45 @@ GET /api/revenue/list
 {
   "items": [
     {
-      "id": "ad_123",
-      "type": "SALES",
+      "id": 123,
+      "transactionType": "INCOME",
       "title": "헬스케어 광고 수익",
       "description": "Round #246 · 헬스케어 분야",
-      "date": "2024-08-26T10:30:00",
+      "transactionDate": "2024-08-26",
       "amount": 125000,
-      "status": "완료",
-      "fee": 12500,
-      "metrics": [
-        {
-          "label": "예상 수익",
-          "value": "₩12,500"
-        },
-        {
-          "label": "수익률",
-          "value": "10.0%"
-        }
-      ],
-      "category": "광고"
+      "memberCompanyName": "테스트 회사",
+      "roundNumber": "246",
+      "roundCategory": "헬스케어",
+      "ctrRate": 5.2,
+      "taxInvoiceIssued": false,
+      "taxInvoiceNumber": null,
+      "createdAt": "2024-08-26T10:30:00",
+      "updatedAt": "2024-08-26T10:30:00"
     }
   ],
   "totalCount": 10,
   "summary": {
-    "totalRevenue": 3247500,
+    "totalIncome": 2847500,
+    "totalExpense": 400000,
+    "netRevenue": 2447500,
     "monthlyGrowth": 12.5,
-    "adRevenue": 2847500,
-    "adRevenueGrowth": 8.3,
-    "orderRevenue": 400000,
-    "orderRevenueGrowth": 25.0,
+    "incomeGrowth": 8.3,
+    "expenseGrowth": 25.0,
     "period": "MONTH"
   }
 }
+```
+
+#### cURL 예제
+```bash
+# 전체 수익 목록 조회
+curl -X GET "http://localhost:8080/api/revenue/list?memberId=2&period=MONTH"
+
+# 매출만 조회
+curl -X GET "http://localhost:8080/api/revenue/list?memberId=2&transactionType=INCOME&period=MONTH"
+
+# 매입만 조회
+curl -X GET "http://localhost:8080/api/revenue/list?memberId=2&transactionType=EXPENSE&period=MONTH"
 ```
 
 ### 2. 수익 요약 정보 조회
@@ -81,14 +88,19 @@ GET /api/revenue/summary
 #### Response
 ```json
 {
-  "totalRevenue": 3247500,
+  "totalIncome": 2847500,
+  "totalExpense": 400000,
+  "netRevenue": 2447500,
   "monthlyGrowth": 12.5,
-  "adRevenue": 2847500,
-  "adRevenueGrowth": 8.3,
-  "orderRevenue": 400000,
-  "orderRevenueGrowth": 25.0,
+  "incomeGrowth": 8.3,
+  "expenseGrowth": 25.0,
   "period": "MONTH"
 }
+```
+
+#### cURL 예제
+```bash
+curl -X GET "http://localhost:8080/api/revenue/summary?memberId=2&period=MONTH"
 ```
 
 ### 3. 수익 데이터 내보내기
@@ -102,11 +114,17 @@ GET /api/revenue/export
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
 | memberId | Long | Yes | 회원 ID |
-| type | String | No | 수익 타입 (SALES, PURCHASES) |
+| transactionType | String | No | 거래 타입 (INCOME, EXPENSE) |
 | period | String | No | 조회 기간 (WEEK, MONTH, QUARTER, YEAR) |
 
 #### Response
 Excel 파일 다운로드
+
+#### cURL 예제
+```bash
+curl -X GET "http://localhost:8080/api/revenue/export?memberId=2&transactionType=INCOME&period=MONTH" \
+  --output "revenue-data.xlsx"
+```
 
 ---
 
@@ -138,6 +156,11 @@ GET /api/revenue/settlement/info
 }
 ```
 
+#### cURL 예제
+```bash
+curl -X GET "http://localhost:8080/api/revenue/settlement/info?memberId=2"
+```
+
 ### 2. 정산 내역 조회
 지난 정산 내역을 조회합니다.
 
@@ -164,6 +187,11 @@ GET /api/revenue/settlement/history
   ],
   "totalCount": 3
 }
+```
+
+#### cURL 예제
+```bash
+curl -X GET "http://localhost:8080/api/revenue/settlement/history?memberId=2"
 ```
 
 ### 3. 계좌 정보 수정
@@ -193,6 +221,17 @@ PUT /api/revenue/account
   "success": true,
   "message": "계좌 정보가 업데이트되었습니다. 1원 인증을 진행해주세요."
 }
+```
+
+#### cURL 예제
+```bash
+curl -X PUT "http://localhost:8080/api/revenue/account?memberId=2" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "bankName": "신한은행",
+    "accountNumber": "110-123-456789",
+    "accountHolder": "김도현"
+  }'
 ```
 
 ---
@@ -233,9 +272,10 @@ POST /api/revenue/tax-invoice
 #### Response
 ```json
 {
-  "invoiceNumber": "202408230001",
+  "invoiceNumber": "202510218846",
+  "approvalNo": "2025102176112236",
   "type": "SALES",
-  "issueDate": "2024-08-23T10:30:00",
+  "issueDate": "2025-10-21T17:21:05.876166000",
   "supplier": {
     "businessNo": "234-56-78901",
     "company": "IT 개발회사",
@@ -253,22 +293,141 @@ POST /api/revenue/tax-invoice
     "businessItem": "플랫폼 운영"
   },
   "item": {
-    "name": "교육 플랫폼 UI 제작 용역",
+    "name": "기타 수익",
     "specification": "",
     "quantity": 1,
-    "unitPrice": null,
-    "amount": 3200000
+    "unitPrice": 100000,
+    "amount": 100000
   },
   "amounts": {
-    "supply": 3200000,
-    "tax": 320000,
-    "total": 3520000
+    "supply": 100000,
+    "tax": 10000,
+    "total": 110000
   },
-  "approvalNo": "2024082300000123"
+  "remarks": "기타 수익",
+  "paymentMethod": {
+    "cash": 110000,
+    "check": 0,
+    "promissoryNote": 0,
+    "credit": 0
+  }
 }
 ```
 
-### 2. 세금계산서 목록 조회
+#### cURL 예제
+```bash
+curl -X POST "http://localhost:8080/api/revenue/tax-invoice" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "revenueItemId": "ad_123",
+    "type": "SALES",
+    "supplierInfo": {
+      "businessNo": "234-56-78901",
+      "company": "IT 개발회사",
+      "ceo": "대표자명",
+      "address": "서울시 강남구",
+      "businessType": "서비스업",
+      "businessItem": "소프트웨어 개발"
+    },
+    "buyerInfo": {
+      "businessNo": "117-81-49125",
+      "company": "CNC 네트워크",
+      "ceo": "대표자명",
+      "address": "서울시 서초구",
+      "businessType": "서비스업",
+      "businessItem": "플랫폼 운영"
+    }
+  }'
+```
+
+### 2. Revenue Transaction 기반 세금계산서 생성
+수익 거래(revenue_transactions) 데이터를 기반으로 자동으로 세금계산서를 생성합니다.
+거래의 member, order, assignment 정보를 기반으로 공급자/구매자 정보와 항목을 자동으로 채웁니다.
+
+```http
+GET /api/revenue/tax-invoice/from-transaction/{revenueTransactionId}
+```
+
+#### Parameters
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| revenueTransactionId | Long | Yes | 수익 거래 ID |
+
+#### 자동 처리 로직
+
+**매입 거래(EXPENSE)의 경우:**
+- 공급자: CNC 네트워크 (플랫폼 운영사)
+- 구매자: 해당 revenue_transaction의 member 정보 
+- 항목: "{order.productName} 광고 게시 서비스"
+- 세금계산서 유형: PURCHASES (매입)
+
+**매출 거래(INCOME)의 경우:**
+- 공급자: 해당 revenue_transaction의 member 정보
+- 구매자: CNC 네트워크 (플랫폼 운영사)
+- 항목: "광고 콘텐츠 제작 및 게시"
+- 세금계산서 유형: SALES (매출)
+
+**공통 처리:**
+- 금액: revenue_transaction의 amount를 공급가액으로 사용
+- 부가세: 공급가액의 10% 자동 계산
+- 회원 정보: member 테이블의 사업자등록번호, 회사명, 주소 등 활용
+
+#### Response
+Revenue Transaction의 실제 데이터를 기반으로 세금계산서가 생성됩니다.
+```json
+{
+  "invoiceNumber": "202510218847",
+  "approvalNo": "2025102176112237",
+  "type": "SALES",
+  "issueDate": "2025-10-21T17:21:05.876166000",
+  "supplier": {
+    "businessNo": "234-56-78901",
+    "company": "IT 개발회사",
+    "ceo": "대표자명",
+    "address": "서울시 강남구",
+    "businessType": "서비스업",
+    "businessItem": "소프트웨어 개발"
+  },
+  "buyer": {
+    "businessNo": "117-81-49125",
+    "company": "CNC 네트워크",
+    "ceo": "대표자명",
+    "address": "서울시 서초구",
+    "businessType": "서비스업",
+    "businessItem": "플랫폼 운영"
+  },
+  "item": {
+    "name": "광고 콘텐츠 제작 및 게시",
+    "specification": "Round #1 - 헬스케어 (SOCIAL_MEDIA)",
+    "quantity": 1,
+    "unitPrice": 125000,
+    "amount": 125000
+  },
+  "amounts": {
+    "supply": 125000,
+    "tax": 12500,
+    "total": 137500
+  },
+  "remarks": "광고 콘텐츠 제작 및 게시 - INCOME (Round #1)",
+  "paymentMethod": {
+    "cash": 137500,
+    "check": 0,
+    "promissoryNote": 0,
+    "credit": 0
+  }
+}
+```
+
+#### cURL 예제
+```bash
+# 수익 거래 ID 123번을 기반으로 세금계산서 생성
+curl -X GET "http://localhost:8080/api/revenue/tax-invoice/from-transaction/123"
+
+# 실제 존재하는 revenue transaction ID 사용 예시
+curl -X GET "http://localhost:8080/api/revenue/tax-invoice/from-transaction/1"
+```
+
+### 3. 세금계산서 목록 조회
 사용자의 세금계산서 목록을 조회합니다.
 
 ```http
@@ -298,7 +457,12 @@ GET /api/revenue/tax-invoice/list
 }
 ```
 
-### 3. 세금계산서 상세 조회
+#### cURL 예제
+```bash
+curl -X GET "http://localhost:8080/api/revenue/tax-invoice/list?memberId=2"
+```
+
+### 4. 세금계산서 상세 조회
 특정 세금계산서의 상세 정보를 조회합니다.
 
 ```http
@@ -313,7 +477,12 @@ GET /api/revenue/tax-invoice/{invoiceNumber}
 #### Response
 세금계산서 생성 API와 동일한 형식
 
-### 4. 세금계산서 이메일 발송
+#### cURL 예제
+```bash
+curl -X GET "http://localhost:8080/api/revenue/tax-invoice/202408230001"
+```
+
+### 5. 세금계산서 이메일 발송
 세금계산서를 이메일로 발송합니다.
 
 ```http
@@ -334,7 +503,12 @@ POST /api/revenue/tax-invoice/{invoiceNumber}/email
 }
 ```
 
-### 5. 세금계산서 PDF 다운로드
+#### cURL 예제
+```bash
+curl -X POST "http://localhost:8080/api/revenue/tax-invoice/202408230001/email?email=test@example.com"
+```
+
+### 6. 세금계산서 PDF 다운로드
 세금계산서를 PDF 파일로 다운로드합니다.
 
 ```http
@@ -348,6 +522,13 @@ GET /api/revenue/tax-invoice/{invoiceNumber}/pdf
 
 #### Response
 PDF 파일 다운로드
+
+#### cURL 예제
+```bash
+curl -X GET "http://localhost:8080/api/revenue/tax-invoice/202408230001/pdf" \
+  -H "Accept: application/pdf" \
+  --output "tax-invoice-202408230001.pdf"
+```
 
 ---
 
@@ -374,13 +555,18 @@ POST /api/revenue/test/generate
 }
 ```
 
+#### cURL 예제
+```bash
+curl -X POST "http://localhost:8080/api/revenue/test/generate?memberId=2"
+```
+
 ---
 
 ## 데이터 타입 설명
 
-### RevenueType
-- `SALES`: 매출 (광고 수익)
-- `PURCHASES`: 매입 (주문 비용)
+### TransactionType
+- `INCOME`: 수입 (광고 게시로 받은 수익)
+- `EXPENSE`: 지출 (광고 주문 비용)
 
 ### RevenuePeriod
 - `WEEK`: 주간
@@ -416,6 +602,7 @@ POST /api/revenue/test/generate
 | 404 | 리소스를 찾을 수 없음 |
 | 500 | 서버 내부 오류 |
 
+
 ## 사용 예시
 
 ### JavaScript (Axios)
@@ -423,8 +610,8 @@ POST /api/revenue/test/generate
 // 수익 목록 조회
 const revenueList = await axios.get('/api/revenue/list', {
   params: {
-    memberId: 1,
-    type: 'SALES',
+    memberId: 2,
+    transactionType: 'INCOME',
     period: 'MONTH'
   }
 });
@@ -447,26 +634,6 @@ const taxInvoice = await axios.post('/api/revenue/tax-invoice', {
 
 // 정산 내역 조회
 const settlementHistory = await axios.get('/api/revenue/settlement/history', {
-  params: { memberId: 1 }
+  params: { memberId: 2 }
 });
-```
-
-### cURL
-```bash
-# 수익 목록 조회
-curl -X GET "http://localhost:8080/api/revenue/list?memberId=1&type=SALES&period=MONTH"
-
-# 세금계산서 PDF 다운로드
-curl -X GET "http://localhost:8080/api/revenue/tax-invoice/202408230001/pdf" \
-  -H "Accept: application/pdf" \
-  --output "tax-invoice.pdf"
-
-# 계좌 정보 수정
-curl -X PUT "http://localhost:8080/api/revenue/account?memberId=1" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "bankName": "신한은행",
-    "accountNumber": "110-123-456789",
-    "accountHolder": "김도현"
-  }'
 ```

@@ -29,4 +29,6 @@ interface AdvertisementAssignmentRepository : JpaRepository<AdvertisementAssignm
         @Param("publisherId") publisherId: Long,
         @Param("assignmentId") assignmentId: Long
     ): AdvertisementAssignment?
+    
+    fun findByAdTaskId(adTaskId: Long): List<AdvertisementAssignment>
 }

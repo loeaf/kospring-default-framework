@@ -4,11 +4,15 @@ import com.service.frame.mypage.dto.*
 import com.service.frame.member.repository.MemberRepository
 import com.service.frame.post.repository.AdvertisementPostRepository
 import com.service.frame.order.repository.OrderRepository
+import com.service.frame.order.entity.OrderStatus
 import com.service.frame.ads.service.AdsService
+import com.service.frame.revenue.repository.RevenueTransactionRepository
+import com.service.frame.revenue.entity.TransactionType
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.math.BigDecimal
 import java.time.LocalDateTime
+import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
 @Service
@@ -17,7 +21,8 @@ class MypageService(
     private val memberRepository: MemberRepository,
     private val postRepository: AdvertisementPostRepository,
     private val orderRepository: OrderRepository,
-    private val adsService: AdsService
+    private val adsService: AdsService,
+    private val revenueTransactionRepository: RevenueTransactionRepository
 ) {
     
     fun getUserProfile(memberId: Long): UserProfileResponse {
@@ -175,29 +180,30 @@ class MypageService(
     }
     
     private fun calculateUserStats(memberId: Long): UserStats {
-        // 실제 DB에서 계산하는 로직
+        val totalOrders = orderRepository.countByMemberId(memberId).toInt()
+        val totalAds = getTotalAdCount(memberId)
+        val rounds = orderRepository.countDistinctRoundsByMemberId(memberId).toInt()
+        
         return UserStats(
-            rounds = 12,
-            totalOrders = 45,
-            totalAds = 28,
-            impressions = 45000,  // deprecated
-            clicks = 28000        // deprecated
+            rounds = rounds,
+            totalOrders = totalOrders,
+            totalAds = totalAds,
+            impressions = 0,  // deprecated - set to 0
+            clicks = 0        // deprecated - set to 0
         )
     }
     
     private fun getTotalOrderCount(memberId: Long): Int {
-        // 실제로는 주문 테이블에서 조회
-        return 45
+        return orderRepository.countByMemberId(memberId).toInt()
     }
     
     private fun getCompletedOrderCount(memberId: Long): Int {
-        // 실제로는 완료된 주문 수 조회
-        return 42
+        return orderRepository.countByMemberIdAndStatus(memberId, OrderStatus.COMPLETED).toInt()
     }
     
     private fun getWeeklyOrderCount(memberId: Long, startOfWeek: LocalDateTime): Int {
-        // 실제로는 이번 주 신규 주문 수 조회
-        return 3
+        val endOfWeek = LocalDateTime.now()
+        return orderRepository.findByMemberIdAndCreatedAtBetween(memberId, startOfWeek, endOfWeek).size
     }
     
     private fun getTotalAdCount(memberId: Long): Int {
@@ -213,49 +219,92 @@ class MypageService(
     }
     
     private fun getWeeklyAdCount(memberId: Long, startOfWeek: LocalDateTime): Int {
-        // 실제로는 이번 주 신규 광고 수 조회
-        return 2
+        val posts = postRepository.findByPublisherMemberIdOrderBySubmittedAtDesc(memberId)
+        return posts.count { it.submittedAt.isAfter(startOfWeek) }
     }
     
     private fun getMonthlyAdRevenue(memberId: Long, startOfMonth: LocalDateTime): BigDecimal {
-        // 실제로는 이번 달 광고 수익 계산
-        val posts = postRepository.findByPublisherMemberIdOrderBySubmittedAtDesc(memberId)
-        return posts
-            .filter { it.postStatus.name == "PUBLISHED" && it.publishedAt?.isAfter(startOfMonth) == true }
-            .mapNotNull { it.finalRevenue }
-            .fold(BigDecimal.ZERO) { acc, revenue -> acc.add(revenue) }
+        // revenue_transactions 테이블에서 INCOME 거래의 월간 합계
+        val startDate = startOfMonth.toLocalDate()
+        val endDate = LocalDate.now()
+        
+        val incomeTransactions = revenueTransactionRepository.findByMemberIdAndTransactionType(
+            memberId, 
+            TransactionType.INCOME
+        )
+        
+        return incomeTransactions
+            .filter { it.transactionDate != null && 
+                     it.transactionDate!! >= startDate && 
+                     it.transactionDate!! <= endDate }
+            .sumOf { it.amount ?: BigDecimal.ZERO }
     }
     
     private fun getMonthlyOrderRevenue(memberId: Long, startOfMonth: LocalDateTime): BigDecimal {
-        // 실제로는 이번 달 주문 매입 계산
-        return BigDecimal("1200000")
+        // revenue_transactions 테이블에서 EXPENSE 거래의 월간 합계  
+        val startDate = startOfMonth.toLocalDate()
+        val endDate = LocalDate.now()
+        
+        val expenseTransactions = revenueTransactionRepository.findByMemberIdAndTransactionType(
+            memberId, 
+            TransactionType.EXPENSE
+        )
+        
+        return expenseTransactions
+            .filter { it.transactionDate != null && 
+                     it.transactionDate!! >= startDate && 
+                     it.transactionDate!! <= endDate }
+            .sumOf { it.amount ?: BigDecimal.ZERO }
     }
     
     private fun getRecentOrderActivities(memberId: Long, limit: Int): List<ActivityItem> {
-        // 실제로는 최근 주문 활동 조회
-        return listOf(
+        val orders = orderRepository.findByMemberIdOrderBySubmittedAtDesc(memberId)
+        return orders.take(limit).map { order ->
             ActivityItem(
-                id = 1,
-                type = ActivityType.ORDER_COMPLETED,
-                title = "뷰티 패키지 디자인 완료",
-                description = "구매번호 #ORD-2024-002",
-                timestamp = LocalDateTime.now().minusDays(1),
-                status = "완료"
+                id = order.id!!,
+                type = when (order.status) {
+                    OrderStatus.COMPLETED -> ActivityType.ORDER_COMPLETED
+                    else -> ActivityType.ORDER_CREATED
+                },
+                title = "${order.productName} ${when (order.status) {
+                    OrderStatus.COMPLETED -> "완료"
+                    OrderStatus.IN_PROGRESS -> "진행중"
+                    else -> "주문"
+                }}",
+                description = "주문번호 #${order.orderNumber}",
+                timestamp = order.submittedAt,
+                status = when (order.status) {
+                    OrderStatus.COMPLETED -> "완료"
+                    OrderStatus.IN_PROGRESS -> "진행중"
+                    OrderStatus.PAYMENT_CONFIRMED -> "결제완료"
+                    else -> order.status.name
+                }
             )
-        )
+        }
     }
     
     private fun getRecentAdActivities(memberId: Long, limit: Int): List<ActivityItem> {
-        // 실제로는 최근 광고 활동 조회
-        return listOf(
+        val posts = postRepository.findByPublisherMemberIdOrderBySubmittedAtDesc(memberId)
+        return posts.take(limit).map { post ->
             ActivityItem(
-                id = 2,
-                type = ActivityType.AD_PUBLISHED,
-                title = "헬스케어 광고 게시",
-                description = "Round #246 · 헬스케어 분야",
-                timestamp = LocalDateTime.now().minusDays(2),
-                status = "게시됨"
+                id = post.id!!,
+                type = when (post.postStatus.name) {
+                    "PUBLISHED" -> ActivityType.AD_PUBLISHED
+                    else -> ActivityType.AD_CREATED
+                },
+                title = "${post.assignment?.round?.title ?: "광고"} ${when (post.postStatus.name) {
+                    "PUBLISHED" -> "게시"
+                    "SUBMITTED" -> "제출"
+                    else -> "작성"
+                }}",
+                description = "Round #${post.assignment?.round?.id} · ${post.assignment?.round?.category ?: "광고"}",
+                timestamp = post.publishedAt ?: post.submittedAt,
+                status = when (post.postStatus.name) {
+                    "PUBLISHED" -> "게시됨"
+                    "SUBMITTED" -> "제출됨"
+                    else -> post.postStatus.name
+                }
             )
-        )
+        }
     }
 }

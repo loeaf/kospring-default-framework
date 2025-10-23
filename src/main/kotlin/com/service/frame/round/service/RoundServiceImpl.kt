@@ -30,6 +30,11 @@ class RoundServiceImpl(
         val creator = memberRepository.findById(createdById).orElse(null) 
             ?: throw IllegalArgumentException("Member not found with id: $createdById")
 
+        // 자동으로 postStartDate와 postEndDate 계산
+        val postStartDate = request.postStartDate ?: request.endDate
+        val postDurationDays = request.postDurationDays ?: 7
+        val postEndDate = request.postEndDate ?: postStartDate.plusDays(postDurationDays.toLong())
+
         val round = Round(
             title = request.title,
             description = request.description,
@@ -42,9 +47,9 @@ class RoundServiceImpl(
             otherCosts = request.otherCosts,
             startDate = request.startDate,
             endDate = request.endDate,
-            postStartDate = request.postStartDate,
-            postEndDate = request.postEndDate,
-            postDurationDays = request.postDurationDays,
+            postStartDate = postStartDate,
+            postEndDate = postEndDate,
+            postDurationDays = postDurationDays,
             maxParticipants = request.maxParticipants,
             createdBy = creator
         )

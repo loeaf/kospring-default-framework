@@ -5,13 +5,15 @@ import java.time.LocalDateTime
 
 data class TaxInvoiceResponse(
     val invoiceNumber: String,
+    val approvalNo: String? = null,
     val type: TaxInvoiceType,
     val issueDate: LocalDateTime,
     val supplier: BusinessInfo,
     val buyer: BusinessInfo,
     val item: InvoiceItem,
     val amounts: InvoiceAmounts,
-    val approvalNo: String? = null
+    val remarks: String? = null,
+    val paymentMethod: PaymentMethod? = null
 )
 
 enum class TaxInvoiceType {
@@ -49,6 +51,13 @@ data class TaxInvoiceRequest(
     val buyerInfo: BusinessInfo
 )
 
+data class RevenueTransactionTaxInvoiceRequest(
+    val revenueTransactionId: Long,
+    val type: TaxInvoiceType,
+    val supplierInfo: BusinessInfo,
+    val buyerInfo: BusinessInfo
+)
+
 data class TaxInvoiceListResponse(
     val invoices: List<TaxInvoiceSummary>,
     val totalCount: Int
@@ -70,3 +79,10 @@ enum class TaxInvoiceStatus {
     SENT,       // 전송완료
     FAILED      // 발행실패
 }
+
+data class PaymentMethod(
+    val cash: BigDecimal = BigDecimal.ZERO,
+    val check: BigDecimal = BigDecimal.ZERO,
+    val promissoryNote: BigDecimal = BigDecimal.ZERO,
+    val credit: BigDecimal = BigDecimal.ZERO
+)

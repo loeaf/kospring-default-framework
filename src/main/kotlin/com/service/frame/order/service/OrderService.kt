@@ -10,6 +10,7 @@ import com.service.frame.order.repository.OrderPaymentRepository
 import com.service.frame.member.repository.MemberRepository
 import com.service.frame.ad.repository.AdTaskRepository
 import com.service.frame.round.repository.RoundRepository
+import com.service.frame.revenue.service.RevenueService
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -24,7 +25,8 @@ class OrderService(
     private val orderPaymentRepository: OrderPaymentRepository,
     private val memberRepository: MemberRepository,
     private val adTaskRepository: AdTaskRepository,
-    private val roundRepository: RoundRepository
+    private val roundRepository: RoundRepository,
+    private val revenueService: RevenueService
 ) {
     private val logger = LoggerFactory.getLogger(OrderService::class.java)
 
@@ -125,6 +127,14 @@ class OrderService(
         )
 
         val savedOrder = orderRepository.save(updatedOrder)
+        
+        // revenue_transactions 테이블의 order_status도 업데이트
+        try {
+            revenueService.updateOrderStatusInRevenueTransactions(savedOrder)
+        } catch (e: Exception) {
+            logger.warn("Failed to update revenue transaction order status for order ${savedOrder.id}: ${e.message}")
+        }
+        
         return mapToOrderResponse(savedOrder)
     }
 
@@ -144,8 +154,22 @@ class OrderService(
         val member = memberRepository.findById(memberId).orElse(null)
             ?: throw IllegalArgumentException("Member not found with id: $memberId")
 
-        val orders = orderRepository.findByMemberIdOrderBySubmittedAtDesc(memberId)
-        val orderResponses = orders.map { mapToOrderResponse(it) }
+        val orders = orderRepository.findByMemberIdWithDetailsOrderBySubmittedAtDesc(memberId)
+        
+        val roundParticipantsCache = mutableMapOf<Long, List<Map<String, Any>>>()
+        
+        val orderResponses = orders.map { order ->
+            val roundId = order.adTask?.round?.id
+            val roundParticipants = if (roundId != null) {
+                roundParticipantsCache.getOrPut(roundId) {
+                    orderRepository.findRoundParticipants(roundId)
+                }
+            } else {
+                emptyList()
+            }
+            
+            mapToOrderResponseWithRoundParticipants(order, roundParticipants)
+        }
 
         return MemberOrderList(
             memberId = memberId,
@@ -221,7 +245,78 @@ class OrderService(
             notes = order.notes,
             createdAt = order.createdAt,
             updatedAt = order.updatedAt,
-            paymentInfo = paymentInfo
+            paymentInfo = paymentInfo,
+            roundParticipants = null
+        )
+    }
+
+    private fun mapToOrderResponseWithRoundParticipants(order: Order, roundParticipants: List<Map<String, Any>>): OrderResponse {
+        val latestPayment = orderPaymentRepository.findByOrderIdOrderByCreatedAtDesc(order.id!!)
+            .firstOrNull()
+
+        val round = order.adTask.round
+        val paymentAmount = round.orderAmount
+
+        val paymentInfo = if (latestPayment != null) {
+            mapToOrderPaymentInfo(latestPayment).copy(
+                paymentAmount = paymentAmount,
+                bankAccountNumber = "110-123-456789",
+                bankName = "신한은행"
+            )
+        } else {
+            OrderPaymentInfo(
+                id = 0L,
+                applicationNumber = "",
+                paymentAmount = paymentAmount,
+                depositorName = "",
+                paymentStatus = PaymentStatus.WAITING,
+                bankAccountNumber = "110-123-456789",
+                bankName = "신한은행",
+                paymentConfirmedAt = null,
+                notes = "입금 후 결제 승인 요청 바랍니다"
+            )
+        }
+
+        val roundParticipantsInfo = if (roundParticipants.isNotEmpty()) {
+            RoundParticipantsInfo(
+                roundId = round.id!!,
+                totalParticipants = roundParticipants.size,
+                participants = roundParticipants.map { 
+                    RoundParticipant(
+                        companyName = it["companyName"] as String,
+                        orderDate = it["orderDate"] as LocalDateTime,
+                        orderStatus = it["orderStatus"] as OrderStatus
+                    )
+                }
+            )
+        } else null
+
+        return OrderResponse(
+            id = order.id!!,
+            orderNumber = order.orderNumber,
+            adTaskId = order.adTask.id!!,
+            adTaskTitle = "AdTask #${order.adTask.id}",
+            memberId = order.member.id!!,
+            memberCompanyName = order.member.companyName ?: "",
+            memberEmail = order.member.email,
+            productName = order.productName,
+            quantity = order.quantity,
+            requirements = order.requirements,
+            deadline = order.deadline,
+            startDate = order.startDate,
+            completionDate = order.completionDate,
+            failureDate = order.failureDate,
+            progressRate = order.progressRate,
+            failureReason = order.failureReason,
+            status = order.status,
+            submittedAt = order.submittedAt,
+            reviewedAt = order.reviewedAt,
+            reviewedByName = order.reviewedBy?.companyName,
+            notes = order.notes,
+            createdAt = order.createdAt,
+            updatedAt = order.updatedAt,
+            paymentInfo = paymentInfo,
+            roundParticipants = roundParticipantsInfo
         )
     }
 
@@ -549,6 +644,13 @@ class OrderService(
             val savedPayment = orderPaymentRepository.save(updatedPayment)
             updateOrderStatus(order.id!!, OrderStatusUpdateRequest(OrderStatus.PAYMENT_CONFIRMED))
             
+            // 입금 확인 시 expense transaction 생성
+            try {
+                revenueService.createExpenseTransaction(order)
+            } catch (e: Exception) {
+                logger.warn("Failed to create expense transaction for order ${order.id}: ${e.message}")
+            }
+            
             mapToOrderPaymentInfo(savedPayment)
         }
 
@@ -733,7 +835,8 @@ class OrderService(
                 notes = order.notes,
                 createdAt = order.createdAt,
                 updatedAt = order.updatedAt,
-                paymentInfo = paymentInfo
+                paymentInfo = paymentInfo,
+                roundParticipants = null
             )
         }
     }
@@ -776,10 +879,26 @@ class OrderService(
                 notes = notes,
                 progressRate = 100
             )
-            orderRepository.save(updatedOrder)
+            val savedOrder = orderRepository.save(updatedOrder)
+            
+            // revenue_transactions 테이블의 order_status도 업데이트
+            try {
+                revenueService.updateOrderStatusInRevenueTransactions(savedOrder)
+            } catch (e: Exception) {
+                logger.warn("Failed to update revenue transaction order status for order ${savedOrder.id}: ${e.message}")
+            }
+            
+            savedOrder
         }
         
         logger.info("라운드 $roundId 의 ${completedOrders.size}개 주문이 완료 상태로 업데이트되었습니다.")
+        
+        // 모든 주문이 완료되었으므로 라운드 상태를 CLOSED로 변경
+        // Round 엔티티의 mutable 필드를 업데이트하고 저장
+        round.updatedAt = LocalDateTime.now()
+        val updatedRound = round.copy(status = com.service.frame.round.entity.RoundStatus.CLOSED)
+        roundRepository.save(updatedRound)
+        logger.info("라운드 $roundId 의 상태가 CLOSED로 변경되었습니다.")
         
         return completedOrders.map { order ->
             val member = memberRepository.findById(order.member.id!!).orElse(null)
@@ -823,7 +942,8 @@ class OrderService(
                 notes = order.notes,
                 createdAt = order.createdAt,
                 updatedAt = order.updatedAt,
-                paymentInfo = paymentInfo
+                paymentInfo = paymentInfo,
+                roundParticipants = null
             )
         }
     }
@@ -904,7 +1024,8 @@ class OrderService(
                 notes = order.notes,
                 createdAt = order.createdAt,
                 updatedAt = order.updatedAt,
-                paymentInfo = paymentInfo
+                paymentInfo = paymentInfo,
+                roundParticipants = null
             )
         }
     }
@@ -933,5 +1054,64 @@ class OrderService(
             logger.error("라운드 $roundId 포스트 게시 상태 확인 중 오류 발생", e)
             false
         }
+    }
+
+    @Transactional
+    fun purchaseAd(request: AdPurchaseRequest): AdPurchaseResponse {
+        val member = memberRepository.findById(request.memberId).orElse(null)
+            ?: throw IllegalArgumentException("Member not found with id: ${request.memberId}")
+        
+        val adTask = adTaskRepository.findById(request.adTaskId).orElse(null)
+            ?: throw IllegalArgumentException("AdTask not found with id: ${request.adTaskId}")
+
+        val round = adTask.round
+        val orderNumber = generateOrderNumber()
+        
+        // 자동으로 productName 생성: 라운드명 + 광고타입 + 광고번호
+        val productName = "${round.title} ${adTask.adType ?: "광고"} ${adTask.adIndex ?: 1}번"
+        
+        // 자동으로 deadline 설정: round의 post_end_date
+        val deadline = round.getCalculatedPostEndDate().toLocalDate()
+        
+        val order = Order(
+            orderNumber = orderNumber,
+            adTask = adTask,
+            member = member,
+            productName = productName,
+            quantity = request.quantity,
+            requirements = request.requirements,
+            deadline = deadline,
+            startDate = round.postStartDate?.toLocalDate(),
+            completionDate = round.postEndDate?.toLocalDate(),
+            status = OrderStatus.PENDING
+        )
+
+        val savedOrder = orderRepository.save(order)
+
+        val applicationNumber = generateApplicationNumber()
+        val paymentAmount = round.orderAmount
+        
+        // 자동으로 depositorName 설정: member의 회사명 또는 이메일
+        val depositorName = member.companyName ?: member.email
+        
+        val payment = OrderPayment(
+            order = savedOrder,
+            applicationNumber = applicationNumber,
+            paymentAmount = paymentAmount,
+            depositorName = depositorName,
+            bankAccountNumber = "110-123-456789",
+            bankName = "신한은행",
+            notes = "로그인한 유저가 광고 구매 - 입금 대기",
+            paymentStatus = PaymentStatus.WAITING
+        )
+
+        val savedPayment = orderPaymentRepository.save(payment)
+        
+        updateOrderStatus(savedOrder.id!!, OrderStatusUpdateRequest(OrderStatus.PAYMENT_WAITING))
+
+        return AdPurchaseResponse(
+            order = mapToOrderResponse(savedOrder),
+            payment = mapToOrderPaymentInfo(savedPayment)
+        )
     }
 }

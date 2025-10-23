@@ -1,6 +1,7 @@
 package com.service.frame.revenue.controller
 
 import com.service.frame.revenue.dto.*
+import com.service.frame.revenue.entity.TransactionType
 import com.service.frame.revenue.service.RevenueService
 import com.service.frame.revenue.service.TaxInvoiceService
 import org.springframework.http.ResponseEntity
@@ -19,11 +20,11 @@ class RevenueController(
     @GetMapping("/list")
     fun getRevenueList(
         @RequestParam("memberId") memberId: Long,
-        @RequestParam("type", required = false) type: RevenueType?,
+        @RequestParam("transactionType", required = false) transactionType: TransactionType?,
         @RequestParam("period", defaultValue = "MONTH") period: RevenuePeriod
     ): ResponseEntity<RevenueListResponse> {
         val request = RevenueFilterRequest(
-            type = type,
+            transactionType = transactionType,
             period = period,
             memberId = memberId
         )
@@ -93,6 +94,17 @@ class RevenueController(
     }
     
     /**
+     * Revenue Transaction 기반 세금계산서 생성 (GET)
+     */
+    @GetMapping("/tax-invoice/from-transaction/{revenueTransactionId}")
+    fun generateTaxInvoiceFromTransaction(
+        @PathVariable revenueTransactionId: Long
+    ): ResponseEntity<TaxInvoiceResponse> {
+        val result = taxInvoiceService.generateTaxInvoiceFromRevenueTransaction(revenueTransactionId)
+        return ResponseEntity.ok(result)
+    }
+    
+    /**
      * 세금계산서 목록 조회
      */
     @GetMapping("/tax-invoice/list")
@@ -153,7 +165,7 @@ class RevenueController(
     @GetMapping("/export")
     fun exportRevenueData(
         @RequestParam("memberId") memberId: Long,
-        @RequestParam("type", required = false) type: RevenueType?,
+        @RequestParam("transactionType", required = false) transactionType: TransactionType?,
         @RequestParam("period", defaultValue = "MONTH") period: RevenuePeriod
     ): ResponseEntity<ByteArray> {
         // 실제로는 Excel 파일 생성 로직

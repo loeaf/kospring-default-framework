@@ -1195,3 +1195,140 @@ curl -X PUT "http://localhost:8080/api/orders/notifications/1001/read"
 - 결제 대기 시간 및 확인 처리 시간
 - 라운드별 참여율 및 완료율
 - 실패 원인 분석 및 개선점 도출
+
+---
+
+## 광고 구매 API (클라이언트용)
+
+### 광고 구매 (원클릭 주문+결제)
+로그인한 유저가 특정 광고를 구매하는 통합 API입니다. 주문 생성과 결제 정보 생성을 한 번에 처리합니다.
+
+**Endpoint:** `POST /api/orders/purchase`
+
+#### Request Body
+```json
+{
+  "adTaskId": 47,
+  "memberId": 16,
+  "quantity": 1,
+  "requirements": "특별한 요구사항이 있습니다."
+}
+```
+
+| 필드 | 타입 | 필수 | 설명 |
+|-----|------|------|------|
+| adTaskId | Long | Y | 광고 작업 ID (ad_tasks 테이블의 ID) |
+| memberId | Long | Y | 회원 ID |
+| quantity | Integer | N | 수량 (기본값: 1) |
+| requirements | String | N | 특별 요구사항 |
+
+#### 자동 처리되는 필드들
+- **productName**: `라운드명 + 광고타입 + 광고번호`로 자동 생성
+- **deadline**: Round의 `post_end_date` 값으로 자동 설정
+- **depositorName**: Member의 회사명 또는 이메일로 자동 설정
+- **paymentAmount**: Round의 `order_amount` 값으로 자동 설정
+- **bankAccountNumber**: `110-123-456789` (고정값)
+- **bankName**: `신한은행` (고정값)
+
+#### Response
+**Success (200 OK)**
+```json
+{
+  "order": {
+    "id": 123,
+    "orderNumber": "ORD-2025-001",
+    "adTaskId": 47,
+    "adTaskTitle": "AdTask #47",
+    "memberId": 16,
+    "memberCompanyName": "테스트 회사",
+    "memberEmail": "test@company.com",
+    "productName": "Q4 마케팅 캠페인 배너광고 1번",
+    "quantity": 1,
+    "requirements": "특별한 요구사항이 있습니다.",
+    "deadline": "2025-11-15",
+    "startDate": null,
+    "completionDate": null,
+    "failureDate": null,
+    "progressRate": 0,
+    "failureReason": null,
+    "status": "PAYMENT_WAITING",
+    "submittedAt": "2025-10-22T10:30:00",
+    "reviewedAt": null,
+    "reviewedByName": null,
+    "notes": null,
+    "createdAt": "2025-10-22T10:30:00",
+    "updatedAt": "2025-10-22T10:30:00",
+    "paymentInfo": {
+      "id": 456,
+      "applicationNumber": "APP251022001",
+      "paymentAmount": 50000.00,
+      "depositorName": "테스트 회사",
+      "paymentStatus": "WAITING",
+      "bankAccountNumber": "110-123-456789",
+      "bankName": "신한은행",
+      "paymentConfirmedAt": null,
+      "notes": "로그인한 유저가 광고 구매 - 입금 대기"
+    },
+    "roundParticipants": null
+  },
+  "payment": {
+    "id": 456,
+    "applicationNumber": "APP251022001",
+    "paymentAmount": 50000.00,
+    "depositorName": "테스트 회사",
+    "paymentStatus": "WAITING",
+    "bankAccountNumber": "110-123-456789",
+    "bankName": "신한은행",
+    "paymentConfirmedAt": null,
+    "notes": "로그인한 유저가 광고 구매 - 입금 대기"
+  }
+}
+```
+
+#### Error Responses
+**Bad Request (400)**
+```json
+{
+  "error": "MEMBER_NOT_FOUND",
+  "message": "Member not found with id: 999"
+}
+```
+
+```json
+{
+  "error": "ADTASK_NOT_FOUND", 
+  "message": "AdTask not found with id: 999"
+}
+```
+
+#### cURL 예제
+```bash
+curl -X POST "http://localhost:8080/api/orders/purchase" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "adTaskId": 41,
+    "memberId": 3,
+    "quantity": 1,
+    "requirements": "특별한 요구사항이 있습니다."
+  }'
+```
+
+#### 비즈니스 로직
+1. **주문 생성**: AdTask와 Member 정보를 바탕으로 주문 생성
+2. **상품명 자동 생성**: `"{라운드명} {광고타입} {광고번호}번"` 형식
+3. **마감일 자동 설정**: Round의 게시 종료일(`post_end_date`) 사용
+4. **결제 정보 생성**: Round의 주문 금액으로 결제 정보 자동 생성
+5. **입금자명 자동 설정**: Member의 회사명 또는 이메일 사용
+6. **상태 변경**: PENDING → PAYMENT_WAITING 자동 처리
+
+#### 사용 시나리오
+1. **클라이언트 앱**: 사용자가 광고를 선택하고 "구매하기" 버튼 클릭
+2. **원클릭 주문**: adTaskId와 memberId만으로 즉시 주문+결제 정보 생성
+3. **입금 안내**: 응답의 결제 정보를 사용하여 사용자에게 입금 안내
+4. **상태 추적**: 이후 주문 상태 API를 통해 결제 확인 및 진행 상황 추적
+
+#### 장점
+- **간편함**: 복잡한 정보 입력 없이 최소한의 파라미터로 주문 가능
+- **자동화**: 상품명, 마감일, 금액 등 자동 계산으로 오류 방지
+- **일관성**: Round 정보 기반으로 일관된 주문 정보 생성
+- **효율성**: 주문과 결제 정보를 한 번의 API 호출로 처리

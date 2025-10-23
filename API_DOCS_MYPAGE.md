@@ -76,6 +76,15 @@ GET /api/mypage/stats/monthly
 }
 ```
 
+#### 수익 데이터 설명
+- **adRevenue**: 광고 매출 (revenue_transactions에서 INCOME 거래 합계)
+- **orderRevenue**: 주문 매입 (revenue_transactions에서 EXPENSE 거래 합계)
+
+#### cURL 예제
+```bash
+curl -X GET "http://localhost:8080/api/mypage/stats/monthly?memberId=2"
+```
+
 ### 3. 계정 정보 조회
 사용자의 계정 정보를 조회합니다.
 

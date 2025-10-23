@@ -63,6 +63,7 @@ data class PostDetailResponse(
     val reviewedByName: String?,
     val notes: String?,
     val assignment: AssignmentInfo,
+    val adTaskInfo: AdTaskInfo? = null, // 게시 완료 시 광고 정보
     val createdAt: LocalDateTime,
     val updatedAt: LocalDateTime
 )
@@ -82,6 +83,16 @@ data class AssignmentInfo(
     val adTaskId: Long,
     val revenuePerPost: BigDecimal,
     val assignmentStatus: String
+)
+
+data class AdTaskInfo(
+    val id: Long,
+    val webUrl: String?,
+    val adType: String,
+    val adIndex: Int,
+    val productName: String?,
+    val requirements: String?,
+    val status: String
 )
 
 // 포스트 목록 조회 응답

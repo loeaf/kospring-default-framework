@@ -1,14 +1,14 @@
+echo "=== 라운드 생성 ==="
 START_DATE=$(date -v+1m '+%Y-%m-%dT09:00:00')
 END_DATE=$(date -v+2m '+%Y-%m-%dT18:00:00')
 
-echo "=== 라운드 생성 ==="
-curl -X POST http://localhost:8080/api/rounds?createdById=15 \
+curl -X POST http://localhost:8080/api/rounds?createdById=1 \
   -H "Content-Type: application/json" \
   -d "{
-    \"title\": \"가즈아 라운드 #1\",
-    \"description\": \"회사 소개 분야 광고 라운드입니다.\",
+    \"title\": \"도현이 부자만들기 찬성 라운드 #2\",
+    \"description\": \"도현 부자 만들기 라운드를 신청해주세요.\",
     \"category\": \"회사소개\",
-    \"orderAmount\": 100000000.00,
+    \"orderAmount\": 3000000.00,
     \"templateCost\": 0,
     \"aiGenerationCost\": 0,
     \"targetingPostingCost\": 0,
@@ -26,5 +26,5 @@ echo "=== 활성 라운드 목록 조회 ==="
 curl -X GET http://localhost:8080/api/rounds?status=ACTIVE \
   -H "Content-Type: application/json"
 
-curl -X GET "http://localhost:8080/api/orders/round/32/keys" \
+curl -X GET "http://localhost:8080/api/orders/round/1/keys" \
   -H "Content-Type: application/json"

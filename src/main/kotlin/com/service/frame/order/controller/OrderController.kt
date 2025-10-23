@@ -224,4 +224,15 @@ class OrderController(
         val result = orderService.startAdvertisingForRound(roundId, notes)
         return ResponseEntity.ok(result)
     }
+
+    /**
+     * 로그인한 유저가 특정 라운드의 광고를 구매하는 API (주문 생성 + 결제 생성)
+     */
+    @PostMapping("/purchase")
+    fun purchaseAd(
+        @RequestBody request: AdPurchaseRequest
+    ): ResponseEntity<AdPurchaseResponse> {
+        val result = orderService.purchaseAd(request)
+        return ResponseEntity.ok(result)
+    }
 }

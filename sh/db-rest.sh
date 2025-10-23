@@ -1,0 +1,1 @@
+TRUNCATE members, rounds, advertisement_assignments, advertisement_posts, ad_tasks RESTART IDENTITY CASCADE;

@@ -21,6 +21,17 @@ interface OrderRepository : JpaRepository<Order, Long> {
     @Query("SELECT o FROM Order o WHERE o.member.id = :memberId ORDER BY o.submittedAt DESC")
     fun findByMemberIdOrderBySubmittedAtDesc(@Param("memberId") memberId: Long): List<Order>
     
+    @Query("""
+        SELECT o FROM Order o 
+        JOIN FETCH o.adTask at
+        JOIN FETCH at.round r
+        JOIN FETCH o.member m
+        LEFT JOIN FETCH o.payments p
+        WHERE o.member.id = :memberId 
+        ORDER BY o.submittedAt DESC
+    """)
+    fun findByMemberIdWithDetailsOrderBySubmittedAtDesc(@Param("memberId") memberId: Long): List<Order>
+    
     @Query("SELECT o FROM Order o WHERE o.adTask.id = :adTaskId")
     fun findByAdTaskId(@Param("adTaskId") adTaskId: Long): Order?
     
@@ -34,6 +45,9 @@ interface OrderRepository : JpaRepository<Order, Long> {
     // 통계를 위한 추가 쿼리들
     @Query("SELECT COUNT(o) FROM Order o WHERE o.member.id = :memberId")
     fun countByMemberId(@Param("memberId") memberId: Long): Long
+    
+    @Query("SELECT COUNT(DISTINCT o.adTask.round.id) FROM Order o WHERE o.member.id = :memberId")
+    fun countDistinctRoundsByMemberId(@Param("memberId") memberId: Long): Long
     
     @Query("SELECT COUNT(o) FROM Order o WHERE o.member.id = :memberId AND o.status = :status")
     fun countByMemberIdAndStatus(@Param("memberId") memberId: Long, @Param("status") status: OrderStatus): Long
@@ -124,4 +138,18 @@ interface OrderRepository : JpaRepository<Order, Long> {
         WHERE aa.adTask.id = :adTaskId
     """)
     fun calculatePostProgressForAdTask(@Param("adTaskId") adTaskId: Long): Int
+    
+    @Query("""
+        SELECT new map(
+            m.companyName as companyName,
+            o.submittedAt as orderDate,
+            o.status as orderStatus
+        )
+        FROM Order o
+        JOIN o.member m
+        JOIN o.adTask at
+        WHERE at.round.id = :roundId
+        ORDER BY o.submittedAt
+    """)
+    fun findRoundParticipants(@Param("roundId") roundId: Long): List<Map<String, Any>>
 }

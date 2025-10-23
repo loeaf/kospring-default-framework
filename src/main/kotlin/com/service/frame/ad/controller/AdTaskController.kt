@@ -3,6 +3,7 @@ package com.service.frame.ad.controller
 import com.service.frame.ad.dto.RoundAdsResponse
 import com.service.frame.ad.dto.AdTaskResponse
 import com.service.frame.ad.dto.RoundWithAdsResponse
+import com.service.frame.ad.dto.AdPreviewResponse
 import com.service.frame.ad.entity.AdTaskStatus
 import com.service.frame.ad.service.AdQueueService
 import com.service.frame.ad.service.AdTaskService
@@ -52,6 +53,27 @@ class AdTaskController(
     @GetMapping("/members/{memberId}/completed")
     fun getMemberCompletedAds(@PathVariable memberId: Long): ResponseEntity<List<AdTaskResponse>> {
         val result = adTaskService.getMemberCompletedAds(memberId)
+        return ResponseEntity.ok(result)
+    }
+
+    /**
+     * 특정 회원의 광고 미리보기 데이터 조회
+     */
+    @GetMapping("/members/{memberId}/previews")
+    fun getMemberAdPreviews(@PathVariable memberId: Long): ResponseEntity<AdPreviewResponse> {
+        val result = adTaskService.getMemberAdPreviews(memberId)
+        return ResponseEntity.ok(result)
+    }
+
+    /**
+     * 랜덤 광고 미리보기 조회 (현재 회원이 제작한 광고 제외)
+     */
+    @GetMapping("/previews/random")
+    fun getRandomAdPreviews(
+        @RequestParam(defaultValue = "10") limit: Int,
+        @RequestParam(required = false) excludeMemberId: Long?
+    ): ResponseEntity<AdPreviewResponse> {
+        val result = adTaskService.getRandomAdPreviews(limit, excludeMemberId)
         return ResponseEntity.ok(result)
     }
 

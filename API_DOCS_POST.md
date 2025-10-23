@@ -156,7 +156,59 @@ curl -X GET "http://localhost:8080/api/advertisement-posts/posts/123"
 curl -X GET "http://localhost:8080/api/advertisement-posts/assignments/456/post"
 ```
 
-**Response**: 위 포스트 상세 조회와 동일한 형식
+**Response**: 포스트 상세 조회와 동일한 형식
+```json
+{
+  "id": 789,
+  "assignmentId": 456,
+  "content": "광고 포스트 내용입니다...",
+  "ctrRate": 5.2,
+  "finalRevenue": 125000,
+  "postStatus": "PUBLISHED",
+  "submittedAt": "2024-08-26T10:30:00",
+  "approvedAt": "2024-08-26T14:20:00",
+  "publishedAt": "2024-08-26T16:00:00",
+  "failedAt": null,
+  "failureReason": null,
+  "rejectionReason": null,
+  "reviewedBy": 1,
+  "reviewedByName": "관리자",
+  "notes": "승인 완료",
+  "assignment": {
+    "id": 456,
+    "roundId": 123,
+    "roundTitle": "헬스케어 광고 캠페인",
+    "roundStartDate": "2024-08-26T09:00:00",
+    "roundEndDate": "2024-08-30T18:00:00",
+    "advertiserMemberId": 100,
+    "advertiserEmail": "advertiser@company.com",
+    "advertiserCompanyName": "광고주 회사",
+    "publisherMemberId": 200,
+    "publisherEmail": "publisher@company.com",
+    "publisherCompanyName": "퍼블리셔 회사",
+    "adTaskId": 789,
+    "revenuePerPost": 125000,
+    "assignmentStatus": "ASSIGNED"
+  },
+  "adTaskInfo": {
+    "id": 789,
+    "webUrl": "https://example.com/product",
+    "adType": "SOCIAL_MEDIA",
+    "adIndex": 1,
+    "productName": "헬스케어 제품",
+    "requirements": "건강 관련 키워드 포함",
+    "status": "ACTIVE"
+  },
+  "createdAt": "2024-08-26T09:00:00",
+  "updatedAt": "2024-08-26T16:00:00"
+}
+```
+
+**주요 특징**:
+- 포스트가 `PUBLISHED` 상태일 때만 `adTaskInfo`가 포함됩니다
+- `adTaskInfo.webUrl`: 광고 대상 웹사이트 URL
+- `adTaskInfo.productName`: 광고 제품명
+- `adTaskInfo.requirements`: 광고 요구사항
 
 ---
 
@@ -164,7 +216,7 @@ curl -X GET "http://localhost:8080/api/advertisement-posts/assignments/456/post"
 
 **Endpoint**: `PUT /api/advertisement-posts/members/{memberId}/posts/{postId}/content`
 
-**설명**: 포스트의 내용을 작성하거나 수정합니다. (Publisher만 가능)
+**설명**: 포스트의 내용을 작성하거나 수정합니다.
 
 **Path Parameters**:
 - `memberId` (Long, required): Publisher Member ID

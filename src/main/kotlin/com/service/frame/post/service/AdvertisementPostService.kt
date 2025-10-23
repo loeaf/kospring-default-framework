@@ -5,6 +5,7 @@ import com.service.frame.post.entity.AdvertisementPostStatus
 import com.service.frame.post.repository.AdvertisementAssignmentRepository
 import com.service.frame.post.repository.AdvertisementPostRepository
 import com.service.frame.member.repository.MemberRepository
+import com.service.frame.order.repository.OrderRepository
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.math.BigDecimal
@@ -16,7 +17,9 @@ class AdvertisementPostService(
     private val postRepository: AdvertisementPostRepository,
     private val assignmentRepository: AdvertisementAssignmentRepository,
     private val memberRepository: MemberRepository,
-    private val orderService: com.service.frame.order.service.OrderService
+    private val orderRepository: OrderRepository,
+    private val orderService: com.service.frame.order.service.OrderService,
+    private val revenueService: com.service.frame.revenue.service.RevenueService
 ) {
     
     // 내 할당된 포스트 목록 조회 (publisher 기준)
@@ -154,16 +157,20 @@ class AdvertisementPostService(
             }
         }
         
-        // 포스트 상태가 PUBLISHED로 변경되었을 때 주문 진행률 업데이트
+        // 포스트 상태가 PUBLISHED로 변경되었을 때 수익 거래 기록 생성 및 주문 진행률 업데이트
         if (newStatus == AdvertisementPostStatus.PUBLISHED) {
             try {
+                // INCOME 거래 기록 생성
+                revenueService.createIncomeTransaction(savedPost)
+                
+                // 주문 진행률 업데이트
                 val roundId = savedPost.assignment?.round?.id
                 if (roundId != null) {
                     orderService.updateOrderProgressByRound(roundId)
                 }
             } catch (e: Exception) {
-                // 주문 진행률 업데이트 실패가 포스트 업데이트를 막지 않도록 함
-                println("주문 진행률 업데이트 중 오류 발생: ${e.message}")
+                // 거래 기록 생성이나 주문 진행률 업데이트 실패가 포스트 업데이트를 막지 않도록 함
+                println("포스트 게시 후속 처리 중 오류 발생: ${e.message}")
             }
         }
         
@@ -247,6 +254,24 @@ class AdvertisementPostService(
     }
     
     private fun mapToPostDetailResponse(post: com.service.frame.post.entity.AdvertisementPost): PostDetailResponse {
+        // 게시 완료 시 광고 정보 포함
+        val adTaskInfo = if (post.postStatus == AdvertisementPostStatus.PUBLISHED && 
+                             post.assignment?.adTask != null && 
+                             post.assignment?.adTask?.id != null) {
+            val adTask = post.assignment!!.adTask!!
+            // AdTask ID로 Order 조회하여 제품명과 요구사항 가져오기
+            val order = orderRepository.findByAdTaskId(adTask.id!!)
+            AdTaskInfo(
+                id = adTask.id!!,
+                webUrl = adTask.webUrl,
+                adType = adTask.adType ?: "UNKNOWN",
+                adIndex = adTask.adIndex ?: 0,
+                productName = order?.productName,
+                requirements = order?.requirements,
+                status = adTask.status.name
+            )
+        } else null
+        
         return PostDetailResponse(
             id = post.id!!,
             assignmentId = post.assignment?.id ?: 0,
@@ -279,6 +304,7 @@ class AdvertisementPostService(
                 revenuePerPost = post.assignment?.revenuePerPost ?: BigDecimal.ZERO,
                 assignmentStatus = post.assignment?.assignmentStatus?.name ?: ""
             ),
+            adTaskInfo = adTaskInfo,
             createdAt = post.createdAt,
             updatedAt = post.updatedAt
         )
@@ -377,12 +403,18 @@ class AdvertisementPostService(
             savedPost
         }
         
-        // 상태 변경 후 주문 진행률 업데이트
+        // 상태 변경 후 수익 거래 기록 생성 및 주문 진행률 업데이트
         if (newStatus == AdvertisementPostStatus.PUBLISHED) {
             try {
+                // 일괄 게시된 포스트들에 대해 INCOME 거래 기록 생성
+                updatedPosts.forEach { post ->
+                    revenueService.createIncomeTransaction(post)
+                }
+                
+                // 주문 진행률 업데이트
                 orderService.updateOrderProgressByRound(roundId)
             } catch (e: Exception) {
-                println("주문 진행률 업데이트 중 오류 발생: ${e.message}")
+                println("일괄 포스트 게시 후속 처리 중 오류 발생: ${e.message}")
             }
         }
         

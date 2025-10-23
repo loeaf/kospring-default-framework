@@ -1,24 +1,27 @@
 package com.service.frame.revenue.dto
 
+import com.service.frame.revenue.entity.TransactionType
 import java.math.BigDecimal
 import java.time.LocalDateTime
+import java.time.LocalDate
 
 data class RevenueItemResponse(
-    val id: String,
-    val type: RevenueType,
+    val id: Long,
+    val transactionType: TransactionType,
     val title: String,
     val description: String,
-    val date: LocalDateTime,
+    val transactionDate: LocalDate,
     val amount: BigDecimal,
-    val status: String,
-    val fee: BigDecimal,
-    val metrics: List<RevenueMetric>,
-    val category: String? = null
-)
-
-data class RevenueMetric(
-    val label: String,
-    val value: String
+    val memberCompanyName: String,
+    val roundNumber: String? = null,
+    val roundCategory: String? = null,
+    val ctrRate: BigDecimal? = null,
+    val orderNumber: String? = null,
+    val orderStatus: String? = null,
+    val taxInvoiceIssued: Boolean,
+    val taxInvoiceNumber: String? = null,
+    val createdAt: LocalDateTime,
+    val updatedAt: LocalDateTime
 )
 
 enum class RevenueType {
@@ -27,12 +30,12 @@ enum class RevenueType {
 }
 
 data class RevenueSummaryResponse(
-    val totalRevenue: BigDecimal,
-    val monthlyGrowth: BigDecimal,
-    val adRevenue: BigDecimal,
-    val adRevenueGrowth: BigDecimal,
-    val orderRevenue: BigDecimal,
-    val orderRevenueGrowth: BigDecimal,
+    val totalIncome: BigDecimal,
+    val totalExpense: BigDecimal,
+    val netRevenue: BigDecimal,
+    val monthlyGrowth: Double,
+    val incomeGrowth: Double,
+    val expenseGrowth: Double,
     val period: String
 )
 
@@ -43,7 +46,7 @@ data class RevenueListResponse(
 )
 
 data class RevenueFilterRequest(
-    val type: RevenueType? = null,
+    val transactionType: TransactionType? = null,
     val period: RevenuePeriod = RevenuePeriod.MONTH,
     val startDate: LocalDateTime? = null,
     val endDate: LocalDateTime? = null,

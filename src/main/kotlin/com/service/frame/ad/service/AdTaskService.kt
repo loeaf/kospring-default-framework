@@ -4,11 +4,16 @@ import com.service.frame.ad.controller.CreateTestAdTaskRequest
 import com.service.frame.ad.dto.AdTaskResponse
 import com.service.frame.ad.dto.RoundAdsResponse
 import com.service.frame.ad.dto.RoundWithAdsResponse
+import com.service.frame.ad.dto.AdPreviewResponse
+import com.service.frame.ad.dto.AdPreviewItem
+import com.service.frame.ad.dto.AdPreviewStatistics
+import com.service.frame.ad.dto.MultiLanguageText
 import com.service.frame.ad.entity.AdTask
 import com.service.frame.ad.entity.AdTaskStatus
 import com.service.frame.ad.repository.AdTaskRepository
 import com.service.frame.round.repository.RoundRepository
 import com.service.frame.member.repository.MemberRepository
+import com.service.frame.post.repository.AdvertisementAssignmentRepository
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -19,7 +24,8 @@ import java.time.LocalDateTime
 class AdTaskService(
     private val adTaskRepository: AdTaskRepository,
     private val roundRepository: RoundRepository,
-    private val memberRepository: MemberRepository
+    private val memberRepository: MemberRepository,
+    private val assignmentRepository: AdvertisementAssignmentRepository
 ) {
     private val logger = LoggerFactory.getLogger(AdTaskService::class.java)
 
@@ -238,13 +244,18 @@ class AdTaskService(
                     return@forEachIndexed
                 }
                 
+                val timestamp = System.currentTimeMillis() / 1000
+                val filename = "member_${memberId}_${adType}_${timestamp}.html"
+                val htmlFilePath = "generated_ads/round_${request.roundId}/${filename}"
+                val webUrl = "/round_${request.roundId}/${filename}"
+                
                 val adTask = AdTask(
                     round = round,
                     member = member,
                     status = status,
                     adContent = request.adContent,
-                    htmlFilePath = "generated_ads/round_${request.roundId}/member_${memberId}_${adType}_${adIndex}.html",
-                    webUrl = "/round_${request.roundId}/member_${memberId}_${adType}_${adIndex}.html",
+                    htmlFilePath = htmlFilePath,
+                    webUrl = webUrl,
                     adType = adType,
                     adIndex = adIndex,
                     createdAt = now,
@@ -260,5 +271,133 @@ class AdTaskService(
 
         logger.info("Created or updated ${allAdTasks.size} AdTasks for round ${request.roundId}")
         return allAdTasks
+    }
+
+    fun getMemberAdPreviews(memberId: Long): AdPreviewResponse {
+        val assignments = assignmentRepository.findByPublisherMemberIdOrderByCreatedAtDesc(memberId)
+        
+        val adPreviewItems = assignments.mapNotNull { assignment ->
+            val task = assignment.adTask ?: return@mapNotNull null
+            val round = assignment.round ?: return@mapNotNull null
+            val advertiser = assignment.advertiserMember ?: return@mapNotNull null
+            val publisher = assignment.publisherMember ?: return@mapNotNull null
+            
+            AdPreviewItem(
+                id = "ad_${task.id}",
+                title = MultiLanguageText(
+                    ko = "${round.title} - ${task.adType}",
+                    en = ""
+                ),
+                description = MultiLanguageText(
+                    ko = round.description ?: "광고 설명이 없습니다.",
+                    en = ""
+                ),
+                client = MultiLanguageText(
+                    ko = advertiser.companyName,
+                    en = ""
+                ),
+                publisher = MultiLanguageText(
+                    ko = publisher.companyName,
+                    en = ""
+                ),
+                tags = listOfNotNull(task.adType, round.category ?: "general"),
+                htmlPath = task.webUrl ?: "",
+                previewHeight = "320px",
+                category = round.category ?: "general",
+                status = when (task.status) {
+                    AdTaskStatus.PENDING -> "대기중"
+                    AdTaskStatus.PROCESSING -> "처리중"
+                    AdTaskStatus.COMPLETED -> "완료"
+                    AdTaskStatus.FAILED -> "실패"
+                    AdTaskStatus.RETRY -> "재시도"
+                }
+            )
+        }
+        
+        val categories = assignments.mapNotNull { it.round?.category }.distinct()
+        
+        val statistics = AdPreviewStatistics(
+            totalAds = adPreviewItems.size,
+            featuredAds = adPreviewItems.size,
+            categories = categories
+        )
+        
+        return AdPreviewResponse(
+            featured = adPreviewItems,
+            statistics = statistics
+        )
+    }
+
+    fun getRandomAdPreviews(limit: Int, excludeMemberId: Long?): AdPreviewResponse {
+        val allAssignments = if (excludeMemberId != null) {
+            // 특정 회원이 제작한 광고를 제외
+            assignmentRepository.findAll().filter { it.publisherMember?.id != excludeMemberId }
+        } else {
+            // 모든 광고
+            assignmentRepository.findAll()
+        }
+        
+        // 완료된 광고만 필터링 (옵션)
+        val completedAssignments = allAssignments.filter { assignment ->
+            assignment.adTask?.status == AdTaskStatus.COMPLETED
+        }
+        
+        // 랜덤하게 섞어서 limit 개수만큼 선택
+        val randomAssignments = if (completedAssignments.size > limit) {
+            completedAssignments.shuffled().take(limit)
+        } else {
+            completedAssignments.shuffled()
+        }
+        
+        val adPreviewItems = randomAssignments.mapNotNull { assignment ->
+            val task = assignment.adTask ?: return@mapNotNull null
+            val round = assignment.round ?: return@mapNotNull null
+            val advertiser = assignment.advertiserMember ?: return@mapNotNull null
+            val publisher = assignment.publisherMember ?: return@mapNotNull null
+            
+            AdPreviewItem(
+                id = "ad_${task.id}",
+                title = MultiLanguageText(
+                    ko = "${round.title} - ${task.adType}",
+                    en = ""
+                ),
+                description = MultiLanguageText(
+                    ko = round.description ?: "광고 설명이 없습니다.",
+                    en = ""
+                ),
+                client = MultiLanguageText(
+                    ko = advertiser.companyName,
+                    en = ""
+                ),
+                publisher = MultiLanguageText(
+                    ko = publisher.companyName,
+                    en = ""
+                ),
+                tags = listOfNotNull(task.adType, round.category ?: "general"),
+                htmlPath = task.webUrl ?: "",
+                previewHeight = "320px",
+                category = round.category ?: "general",
+                status = when (task.status) {
+                    AdTaskStatus.PENDING -> "대기중"
+                    AdTaskStatus.PROCESSING -> "처리중"
+                    AdTaskStatus.COMPLETED -> "완료"
+                    AdTaskStatus.FAILED -> "실패"
+                    AdTaskStatus.RETRY -> "재시도"
+                }
+            )
+        }
+        
+        val categories = randomAssignments.mapNotNull { it.round?.category }.distinct()
+        
+        val statistics = AdPreviewStatistics(
+            totalAds = adPreviewItems.size,
+            featuredAds = adPreviewItems.size,
+            categories = categories
+        )
+        
+        return AdPreviewResponse(
+            featured = adPreviewItems,
+            statistics = statistics
+        )
     }
 }

@@ -40,7 +40,8 @@ data class OrderResponse(
     val notes: String?,
     val createdAt: LocalDateTime,
     val updatedAt: LocalDateTime,
-    val paymentInfo: OrderPaymentInfo?
+    val paymentInfo: OrderPaymentInfo?,
+    val roundParticipants: RoundParticipantsInfo?
 )
 
 // 주문 결제 정보
@@ -192,6 +193,19 @@ data class TopPerformer(
     val totalAmount: BigDecimal
 )
 
+// 라운드 참여자 정보
+data class RoundParticipantsInfo(
+    val roundId: Long,
+    val totalParticipants: Int,
+    val participants: List<RoundParticipant>
+)
+
+data class RoundParticipant(
+    val companyName: String,
+    val orderDate: LocalDateTime,
+    val orderStatus: OrderStatus
+)
+
 // 테스트용 결제 생성 요청 (orderId 없이)
 data class TestPaymentCreateRequest(
     val paymentAmount: BigDecimal,
@@ -199,4 +213,18 @@ data class TestPaymentCreateRequest(
     val bankAccountNumber: String,
     val bankName: String,
     val notes: String? = null
+)
+
+// 광고 구매 요청 (로그인한 유저가 특정 라운드의 광고를 구매)
+data class AdPurchaseRequest(
+    val adTaskId: Long,
+    val memberId: Long,
+    val quantity: Int = 1,
+    val requirements: String? = null
+)
+
+// 광고 구매 응답
+data class AdPurchaseResponse(
+    val order: OrderResponse,
+    val payment: OrderPaymentInfo
 )
