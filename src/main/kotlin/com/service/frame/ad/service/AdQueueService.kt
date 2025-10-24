@@ -169,10 +169,14 @@ class AdQueueService(
     }
 
     private fun createAdTaskMessage(adTask: AdTask): AdTaskMessage {
+        val taskId = adTask.id ?: throw IllegalStateException("AdTask must be saved before creating message. Task ID is null.")
+        val roundId = adTask.round.id ?: throw IllegalStateException("Round ID cannot be null")
+        val memberId = adTask.member.id ?: throw IllegalStateException("Member ID cannot be null")
+        
         return AdTaskMessage(
-            taskId = adTask.id!!,
-            roundId = adTask.round.id!!,
-            memberId = adTask.member.id!!,
+            taskId = taskId,
+            roundId = roundId,
+            memberId = memberId,
             roundInfo = com.service.frame.ad.dto.RoundInfo(
                 id = adTask.round.id!!,
                 title = adTask.round.title,

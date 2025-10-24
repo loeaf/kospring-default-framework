@@ -2,6 +2,7 @@ package com.service.frame.round.service
 
 import com.service.frame.ad.service.AdQueueService
 import com.service.frame.member.repository.MemberRepository
+import com.service.frame.order.repository.OrderRepository
 import com.service.frame.round.dto.RoundCreateRequest
 import com.service.frame.round.dto.RoundResponse
 import com.service.frame.round.entity.Round
@@ -20,6 +21,7 @@ import javax.persistence.PersistenceContext
 class RoundServiceImpl(
     private val roundRepository: RoundRepository,
     private val memberRepository: MemberRepository,
+    private val orderRepository: OrderRepository,
     private val adQueueService: AdQueueService,
     @PersistenceContext private val entityManager: EntityManager
 ) : RoundService {
@@ -76,7 +78,7 @@ class RoundServiceImpl(
             // 광고 생성 큐 추가 실패가 라운드 생성을 막지 않도록 함
         }
         
-        return RoundResponse.from(savedRound)
+        return RoundResponse.from(savedRound, 0)
     }
 
     @Transactional(readOnly = true)
@@ -87,7 +89,10 @@ class RoundServiceImpl(
             roundRepository.findAll(pageable)
         }
         
-        return rounds.map { RoundResponse.from(it) }
+        return rounds.map { round ->
+            val currentParticipants = orderRepository.countByRoundId(round.id!!).toInt()
+            RoundResponse.from(round, currentParticipants)
+        }
     }
 
     @Transactional(readOnly = true)
@@ -95,13 +100,17 @@ class RoundServiceImpl(
         val round = roundRepository.findById(id).orElse(null)
             ?: throw IllegalArgumentException("Round not found with id: $id")
         
-        return RoundResponse.from(round)
+        val currentParticipants = orderRepository.countByRoundId(id).toInt()
+        return RoundResponse.from(round, currentParticipants)
     }
 
     @Transactional(readOnly = true)
     override fun getRoundsByCreatedBy(memberId: Long, pageable: Pageable): Page<RoundResponse> {
         val rounds = roundRepository.findByCreatedByIdOrderByCreatedAtDesc(memberId, pageable)
-        return rounds.map { RoundResponse.from(it) }
+        return rounds.map { round ->
+            val currentParticipants = orderRepository.countByRoundId(round.id!!).toInt()
+            RoundResponse.from(round, currentParticipants)
+        }
     }
 
     private fun generateRoundNumber(): String {

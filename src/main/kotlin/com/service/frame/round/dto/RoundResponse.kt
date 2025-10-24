@@ -21,11 +21,12 @@ data class RoundResponse(
     val calculatedPostEndDate: LocalDateTime,
     val status: RoundStatus,
     val maxParticipants: Int?,
+    val currentParticipants: Int,
     val createdById: Long,
     val createdAt: LocalDateTime
 ) {
     companion object {
-        fun from(round: Round): RoundResponse {
+        fun from(round: Round, currentParticipants: Int = 0): RoundResponse {
             return RoundResponse(
                 id = round.id!!,
                 roundNumber = round.roundNumber,
@@ -42,6 +43,7 @@ data class RoundResponse(
                 calculatedPostEndDate = round.getCalculatedPostEndDate(),
                 status = round.status,
                 maxParticipants = round.maxParticipants,
+                currentParticipants = currentParticipants,
                 createdById = round.createdBy?.id!!,
                 createdAt = round.createdAt!!
             )

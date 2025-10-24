@@ -152,4 +152,7 @@ interface OrderRepository : JpaRepository<Order, Long> {
         ORDER BY o.submittedAt
     """)
     fun findRoundParticipants(@Param("roundId") roundId: Long): List<Map<String, Any>>
+    
+    @Query("SELECT COUNT(o) FROM Order o WHERE o.adTask.round.id = :roundId")
+    fun countByRoundId(@Param("roundId") roundId: Long): Long
 }

@@ -13,6 +13,7 @@ import com.service.frame.ad.entity.AdTaskStatus
 import com.service.frame.ad.repository.AdTaskRepository
 import com.service.frame.round.repository.RoundRepository
 import com.service.frame.member.repository.MemberRepository
+import com.service.frame.order.repository.OrderRepository
 import com.service.frame.post.repository.AdvertisementAssignmentRepository
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
@@ -25,6 +26,7 @@ class AdTaskService(
     private val adTaskRepository: AdTaskRepository,
     private val roundRepository: RoundRepository,
     private val memberRepository: MemberRepository,
+    private val orderRepository: OrderRepository,
     private val assignmentRepository: AdvertisementAssignmentRepository
 ) {
     private val logger = LoggerFactory.getLogger(AdTaskService::class.java)
@@ -141,11 +143,8 @@ class AdTaskService(
         
         val tasks = adTaskRepository.findByRoundIdAndMemberId(roundId, memberId)
         
-        // 현재 참여자 수 계산 (해당 라운드에서 광고 작업이 있는 고유 회원 수)
-        val currentParticipants = adTaskRepository.findByRound(round)
-            .map { it.member.id }
-            .distinct()
-            .size
+        // 현재 참여자 수 계산 (해당 라운드의 주문 수)
+        val currentParticipants = orderRepository.countByRoundId(roundId).toInt()
         
         // 남은 시간 계산 (밀리초)
         val now = LocalDateTime.now()
@@ -186,6 +185,8 @@ class AdTaskService(
             otherCosts = round.otherCosts,
             startDate = round.startDate,
             endDate = round.endDate,
+            postStartDate = round.getCalculatedPostStartDate(),
+            postEndDate = round.getCalculatedPostEndDate(),
             status = round.status.name,
             maxParticipants = round.maxParticipants,
             currentParticipants = currentParticipants,

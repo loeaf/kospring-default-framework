@@ -107,18 +107,18 @@ echo -e "\n"
 
 # 멤버 6: 테스트주식회사 (CNC Test)
 echo "Creating member 6: 테스트주식회사..."
-curl -X POST http://localhost:8080/api/members/complete-registration \
-  -F "email=test@cnc.com" \
-  -F "password=test123!@#" \
-  -F "companyName=테스트주식회사" \
-  -F "businessRegistrationNumber=123-45-67890" \
-  -F "contactNumber=02-1234-5678" \
-  -F "businessRegistrationFile=@./business_registration.pdf" \
-  -F "telecommunicationSalesFile=@./telecom_sales.pdf" \
-  -F "rentalContractAgreed=true" \
-  -F "serviceContractAgreed=true" \
-  -F "marketingAgreed=true" \
-  -F "durationYears=1"
+#curl -X POST http://localhost:8080/api/members/complete-registration \
+#  -F "email=test@cnc.com" \
+#  -F "password=test123!@#" \
+#  -F "companyName=테스트주식회사" \
+#  -F "businessRegistrationNumber=123-45-67890" \
+#  -F "contactNumber=02-1234-5678" \
+#  -F "businessRegistrationFile=@./business_registration.pdf" \
+#  -F "telecommunicationSalesFile=@./telecom_sales.pdf" \
+#  -F "rentalContractAgreed=true" \
+#  -F "serviceContractAgreed=true" \
+#  -F "marketingAgreed=true" \
+#  -F "durationYears=1"
 
 echo -e "\n"
 echo "All members created successfully!"

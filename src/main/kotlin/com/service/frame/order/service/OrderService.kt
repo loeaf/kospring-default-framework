@@ -793,6 +793,12 @@ class OrderService(
         
         logger.info("라운드 $roundId 의 ${startedOrders.size}개 주문이 광고 게시중 상태로 변경되었습니다.")
         
+        // 라운드 상태를 CLOSED로 업데이트
+        round.updatedAt = LocalDateTime.now()
+        val updatedRound = round.copy(status = com.service.frame.round.entity.RoundStatus.CLOSED)
+        roundRepository.save(updatedRound)
+        logger.info("라운드 $roundId 의 상태가 CLOSED로 변경되었습니다.")
+        
         return startedOrders.map { order ->
             val member = memberRepository.findById(order.member.id!!).orElse(null)
             val adTask = adTaskRepository.findById(order.adTask.id!!).orElse(null)

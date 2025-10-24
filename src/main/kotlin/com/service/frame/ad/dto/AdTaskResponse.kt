@@ -42,6 +42,8 @@ data class RoundWithAdsResponse(
     val otherCosts: java.math.BigDecimal?,
     val startDate: java.time.LocalDateTime,
     val endDate: java.time.LocalDateTime,
+    val postStartDate: java.time.LocalDateTime,
+    val postEndDate: java.time.LocalDateTime,
     val status: String,
     val maxParticipants: Int?,
     val currentParticipants: Int,
