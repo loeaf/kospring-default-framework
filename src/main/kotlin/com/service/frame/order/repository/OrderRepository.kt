@@ -141,6 +141,7 @@ interface OrderRepository : JpaRepository<Order, Long> {
     
     @Query("""
         SELECT new map(
+            m.id as memberId,
             m.companyName as companyName,
             o.submittedAt as orderDate,
             o.status as orderStatus

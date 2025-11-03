@@ -519,3 +519,174 @@ GET /api/mypage/dashboard
   ]
 }
 ```
+
+---
+
+## 구매 관리 API (통합)
+
+### 1. 내가 구매한 광고 목록 조회 (통합)
+사용자가 구매한 모든 광고 주문 목록을 조회합니다. 광고 정보, 영수증 정보, 광고 URL을 모두 포함합니다.
+
+```http
+GET /api/orders/members/{memberId}/my-purchases
+```
+
+#### Parameters
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| memberId | Long | Yes | 회원 ID |
+
+#### Response
+```json
+[
+  {
+    "orderId": 15,
+    "orderNumber": "ORD-2024-001",
+    "roundId": 16,
+    "adTaskId": 25,
+    "productName": "헬스케어 브랜드 광고",
+    "quantity": 1,
+    "orderStatus": "COMPLETED",
+    "orderDate": "2024-10-07T13:30:00",
+    "paymentStatus": "CONFIRMED",
+    "paymentAmount": 100000000,
+    "deadline": "2024-10-15",
+    "requirements": "건강한 라이프스타일을 강조해주세요",
+    "totalParticipants": 8,
+    "roundTitle": "Round #16",
+    "adUrl": "https://example.com/ads/round16/ad25.html",
+    "receiptInfo": {
+      "receiptNumber": "REC-2024-001",
+      "totalAmount": 100000000,
+      "vatAmount": 10000000,
+      "finalAmount": 110000000,
+      "companyName": "CNC"
+    }
+  },
+  {
+    "orderId": 14,
+    "orderNumber": "ORD-2024-002",
+    "roundId": 15,
+    "adTaskId": 22,
+    "productName": "뷰티 패키지 디자인",
+    "quantity": 2,
+    "orderStatus": "IN_PROGRESS",
+    "orderDate": "2024-10-05T10:15:00",
+    "paymentStatus": "WAITING",
+    "paymentAmount": 100000000,
+    "deadline": "2024-10-20",
+    "requirements": "고급스러운 느낌으로 제작해주세요",
+    "totalParticipants": 12,
+    "roundTitle": "Round #15",
+    "adUrl": "https://example.com/ads/round15/ad22.html",
+    "receiptInfo": {
+      "receiptNumber": "REC-2024-002",
+      "totalAmount": 200000000,
+      "vatAmount": 20000000,
+      "finalAmount": 220000000,
+      "companyName": "CNC"
+    }
+  }
+]
+```
+
+#### Order Status Types
+- `PENDING`: 주문 대기
+- `PAYMENT_WAITING`: 입금 대기
+- `IN_PROGRESS`: 광고 게시중
+- `COMPLETED`: 완료
+- `CANCELLED`: 취소됨
+
+#### Payment Status Types
+- `WAITING`: 입금 대기
+- `CONFIRMED`: 입금 확인
+- `CANCELLED`: 결제 취소
+
+#### cURL 예제
+```bash
+curl -X GET "http://localhost:8080/api/orders/members/1/my-purchases"
+```
+
+### 2. 광고 URL 다운로드
+advertisement_assignments 테이블에서 URL을 조회하여 octet-stream으로 다운로드합니다.
+
+```http
+GET /api/orders/{orderId}/ad-url/download
+```
+
+#### Parameters
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| orderId | Long | Yes | 주문 ID |
+
+#### Response
+- **Content-Type**: `application/octet-stream`
+- **Content-Disposition**: `attachment; filename=ad-url-{orderId}.html`
+
+#### cURL 예제
+```bash
+curl -X GET "http://localhost:8080/api/orders/15/ad-url/download" \
+  -o "ad-url-15.html"
+```
+
+### 3. 영수증 다운로드
+HTML 영수증을 octet-stream으로 다운로드합니다.
+
+```http
+GET /api/orders/{orderId}/receipt/download
+```
+
+#### Parameters
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| orderId | Long | Yes | 주문 ID |
+
+#### Response
+- **Content-Type**: `application/octet-stream`
+- **Content-Disposition**: `attachment; filename=receipt-{orderId}.html`
+
+#### 영수증 포함 내용
+- 발행업체 정보 (CNC)
+- 고객 정보 (회사명, 연락처 등)
+- 주문 상세 정보 (상품명, 수량, 단가 등)
+- 결제 정보 (결제방법, 상태, 은행 정보)
+- 금액 정보 (합계, 부가세, 총액)
+
+#### cURL 예제
+```bash
+curl -X GET "http://localhost:8080/api/orders/15/receipt/download" \
+  -o "receipt-15.html"
+```
+
+## 장점
+
+### 1. 단일 API 호출
+- 모든 정보(광고 정보, 영수증 정보, 광고 URL)를 한 번에 조회
+- 네트워크 요청 최소화
+
+### 2. 효율적인 데이터 조회
+- 4개 테이블(orders, order_payments, ad_tasks, advertisement_assignments) 조인으로 모든 데이터 확보
+- 데이터베이스 쿼리 최적화
+
+### 3. 간단한 다운로드
+- 모든 다운로드를 octet-stream으로 통일
+- 클라이언트에서 일관된 방식으로 처리 가능
+
+### 4. 영수증 통합
+- CNC가 서비스 공급자로 자동 설정
+- 부가세 10% 자동 계산
+- 영수증 번호 자동 생성
+
+#### 금액 계산 방식
+- **합계**: 단가 × 수량
+- **부가세**: 합계 × 10%
+- **총액**: 합계 + 부가세
+
+#### Error Responses
+```json
+{
+  "error": "Order not found",
+  "message": "Order not found with id: 999",
+  "status": 404
+}
+```

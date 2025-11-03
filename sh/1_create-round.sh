@@ -8,7 +8,7 @@ curl -X POST http://localhost:8080/api/rounds?createdById=1 \
     \"title\": \"도현이 부자만들기 찬성 라운드 #2\",
     \"description\": \"도현이 부자 만들기 라운드를 신청해주세요.\",
     \"category\": \"회사소개\",
-    \"orderAmount\": 5000000.00,
+    \"orderAmount\": 10000000,
     \"templateCost\": 0,
     \"aiGenerationCost\": 0,
     \"targetingPostingCost\": 0,
@@ -16,8 +16,8 @@ curl -X POST http://localhost:8080/api/rounds?createdById=1 \
     \"otherCosts\": 0,
     \"startDate\": \"$START_DATE\",
     \"endDate\": \"$END_DATE\",
-    \"postDurationDays\": 6,
-    \"maxParticipants\": 50
+    \"postDurationDays\": 3,
+    \"maxParticipants\": 5
   }"
 
 echo -e "\n\n"

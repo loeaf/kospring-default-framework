@@ -19,4 +19,7 @@ interface RentalRightsRepository : JpaRepository<RentalRights, Long> {
     
     @Query("SELECT r FROM RentalRights r WHERE r.expiryDate BETWEEN :startDate AND :endDate AND r.status = 'ACTIVE'")
     fun findExpiringRentalRights(startDate: LocalDate, endDate: LocalDate): List<RentalRights>
+    
+    @Query("SELECT COUNT(r) > 0 FROM RentalRights r WHERE r.member = :member AND DATE(r.purchaseDate) = :purchaseDate")
+    fun existsByMemberAndPurchaseDate(member: Member, purchaseDate: LocalDate): Boolean
 }

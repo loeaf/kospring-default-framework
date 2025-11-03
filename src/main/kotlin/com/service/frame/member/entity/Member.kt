@@ -30,11 +30,23 @@ data class Member(
     @Column(name = "contact_number", nullable = false, length = 20)
     val contactNumber: String = "",
 
+    @Column(name = "business_field", nullable = false, length = 255)
+    val businessField: String = "",
+
+    @Column(name = "product_description", nullable = false, length = 1000)
+    val productDescription: String = "",
+
+    @Column(name = "company_description", nullable = false, length = 1000)
+    val companyDescription: String = "",
+
     @Column(name = "business_registration_file", nullable = false, length = 500)
     val businessRegistrationFile: String = "",
 
     @Column(name = "telecommunication_sales_file", nullable = false, length = 500)
     val telecommunicationSalesFile: String = "",
+
+    @Column(name = "advertising_registration_file", nullable = false, length = 500)
+    val advertisingRegistrationFile: String = "",
 
     @Column(name = "is_premium", nullable = false)
     val isPremium: Boolean = false,
@@ -42,6 +54,7 @@ data class Member(
     @Enumerated(EnumType.STRING)
     @Column(name = "rental_status", nullable = false, length = 20)
     val rentalStatus: RentalStatus = RentalStatus.INACTIVE,
+
 
     @Column(name = "current_rental_expiry")
     val currentRentalExpiry: LocalDate? = null,
@@ -55,7 +68,7 @@ data class Member(
     var updatedAt: LocalDateTime? = null
 ) {
     constructor() : this(
-        null, "", "", "", "", "", "", "", false, RentalStatus.INACTIVE, null, null, null
+        null, "", "", "", "", "", "", "", "", "", "", "", false, RentalStatus.INACTIVE, null, null, null
     )
 }
 

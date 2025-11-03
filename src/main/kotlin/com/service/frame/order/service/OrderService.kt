@@ -168,7 +168,7 @@ class OrderService(
                 emptyList()
             }
             
-            mapToOrderResponseWithRoundParticipants(order, roundParticipants)
+            mapToOrderResponseWithRoundParticipants(order, roundParticipants, memberId)
         }
 
         return MemberOrderList(
@@ -250,7 +250,7 @@ class OrderService(
         )
     }
 
-    private fun mapToOrderResponseWithRoundParticipants(order: Order, roundParticipants: List<Map<String, Any>>): OrderResponse {
+    private fun mapToOrderResponseWithRoundParticipants(order: Order, roundParticipants: List<Map<String, Any>>, requestingMemberId: Long): OrderResponse {
         val latestPayment = orderPaymentRepository.findByOrderIdOrderByCreatedAtDesc(order.id!!)
             .firstOrNull()
 
@@ -278,10 +278,14 @@ class OrderService(
         }
 
         val roundParticipantsInfo = if (roundParticipants.isNotEmpty()) {
+            val otherParticipants = roundParticipants.filter { 
+                val memberId = it["memberId"] as? Long
+                memberId != null && memberId != requestingMemberId
+            }
             RoundParticipantsInfo(
                 roundId = round.id!!,
-                totalParticipants = roundParticipants.size,
-                participants = roundParticipants.map { 
+                totalParticipants = otherParticipants.size,
+                participants = otherParticipants.map { 
                     RoundParticipant(
                         companyName = it["companyName"] as String,
                         orderDate = it["orderDate"] as LocalDateTime,
@@ -706,7 +710,7 @@ class OrderService(
         }
         
         val paymentInfos = payments.map { payment ->
-            PaymentInfo(
+            RoundPaymentInfo(
                 id = payment.id!!,
                 orderId = payment.order.id!!,
                 applicationNumber = payment.applicationNumber,
@@ -1119,5 +1123,243 @@ class OrderService(
             order = mapToOrderResponse(savedOrder),
             payment = mapToOrderPaymentInfo(savedPayment)
         )
+    }
+
+    fun getMyPurchases(memberId: Long): List<MyPurchaseResponse> {
+        val member = memberRepository.findById(memberId).orElse(null)
+            ?: throw IllegalArgumentException("Member not found with id: $memberId")
+
+        val orders = orderRepository.findByMemberIdWithDetailsOrderBySubmittedAtDesc(memberId)
+        
+        return orders.map { order ->
+            val latestPayment = orderPaymentRepository.findByOrderIdOrderByCreatedAtDesc(order.id!!)
+                .firstOrNull()
+            
+            val roundId = order.adTask.round.id!!
+            val totalParticipants = orderRepository.countByRoundId(roundId)
+            
+            // 광고 URL 조회 (advertisement_assignments 테이블에서)
+            val adUrl = getAdUrlForOrder(order.id!!)
+            
+            // 영수증 정보 계산
+            val unitPrice = order.adTask.round.orderAmount
+            val subtotal = unitPrice.multiply(BigDecimal(order.quantity))
+            val vatAmount = subtotal.multiply(BigDecimal("0.1"))
+            val finalAmount = subtotal.add(vatAmount)
+            
+            val receiptNumber = "REC-${order.orderNumber?.replace("ORD-", "") ?: order.id}"
+            
+            MyPurchaseResponse(
+                orderId = order.id!!,
+                orderNumber = order.orderNumber ?: "",
+                roundId = roundId,
+                adTaskId = order.adTask.id!!,
+                productName = order.productName,
+                quantity = order.quantity,
+                orderStatus = order.status,
+                orderDate = order.submittedAt,
+                paymentStatus = latestPayment?.paymentStatus,
+                paymentAmount = order.adTask.round.orderAmount,
+                deadline = order.deadline,
+                requirements = order.requirements,
+                totalParticipants = totalParticipants.toInt(),
+                roundTitle = "Round #${roundId}",
+                adUrl = adUrl,
+                receiptInfo = ReceiptSummary(
+                    receiptNumber = receiptNumber,
+                    totalAmount = subtotal,
+                    vatAmount = vatAmount,
+                    finalAmount = finalAmount
+                )
+            )
+        }
+    }
+
+    fun downloadAdUrl(orderId: Long): ByteArray {
+        val order = orderRepository.findById(orderId).orElse(null)
+            ?: throw IllegalArgumentException("Order not found with id: $orderId")
+        
+        val adUrl = getAdUrlForOrder(orderId)
+            ?: throw IllegalArgumentException("Ad URL not found for order: $orderId")
+        
+        // URL 내용을 가져와서 octet-stream으로 반환
+        return try {
+            java.net.URL(adUrl).readBytes()
+        } catch (e: Exception) {
+            // URL에서 직접 읽을 수 없는 경우 URL 자체를 반환
+            adUrl.toByteArray(Charsets.UTF_8)
+        }
+    }
+    
+    private fun getAdUrlForOrder(orderId: Long): String? {
+        // TODO: advertisement_assignments 테이블에서 광고 URL 조회
+        // 현재는 임시로 null 반환
+        return null
+    }
+
+    fun getOrderReceipt(orderId: Long): OrderReceiptResponse {
+        val order = orderRepository.findById(orderId).orElse(null)
+            ?: throw IllegalArgumentException("Order not found with id: $orderId")
+
+        val latestPayment = orderPaymentRepository.findByOrderIdOrderByCreatedAtDesc(orderId)
+            .firstOrNull()
+
+        val receiptNumber = "REC-${order.orderNumber?.replace("ORD-", "") ?: orderId}"
+        val unitPrice = order.adTask.round.orderAmount
+        val subtotal = unitPrice.multiply(BigDecimal(order.quantity))
+        val vatAmount = subtotal.multiply(BigDecimal("0.1")) // 10% VAT
+        val finalAmount = subtotal.add(vatAmount)
+
+        return OrderReceiptResponse(
+            receiptNumber = receiptNumber,
+            orderNumber = order.orderNumber ?: "ORD-$orderId",
+            issueDate = LocalDateTime.now(),
+            customerInfo = CustomerInfo(
+                companyName = order.member.companyName ?: "개인",
+                email = order.member.email,
+                contactNumber = order.member.contactNumber,
+                businessRegistrationNumber = order.member.businessRegistrationNumber
+            ),
+            orderDetails = OrderDetails(
+                productName = order.productName,
+                quantity = order.quantity,
+                unitPrice = unitPrice,
+                subtotal = subtotal,
+                orderDate = order.submittedAt,
+                deadline = order.deadline,
+                requirements = order.requirements,
+                roundId = order.adTask.round.id!!,
+                adTaskId = order.adTask.id!!
+            ),
+            paymentInfo = PaymentInfo(
+                paymentMethod = "무통장입금",
+                paymentStatus = latestPayment?.paymentStatus ?: PaymentStatus.WAITING,
+                paymentDate = latestPayment?.paymentConfirmedAt,
+                depositorName = latestPayment?.depositorName,
+                bankName = latestPayment?.bankName ?: "신한은행",
+                accountNumber = latestPayment?.bankAccountNumber ?: "110-123-456789",
+                applicationNumber = latestPayment?.applicationNumber
+            ),
+            companyInfo = CompanyInfo(),
+            totalAmount = subtotal,
+            vatAmount = vatAmount,
+            finalAmount = finalAmount
+        )
+    }
+
+    fun downloadOrderReceipt(orderId: Long): ByteArray {
+        val receipt = getOrderReceipt(orderId)
+        
+        // HTML 기반 영수증 생성
+        val htmlContent = generateReceiptHtml(receipt)
+        
+        // TODO: 실제로는 HTML을 PDF로 변환하는 라이브러리 사용
+        // 현재는 HTML을 바이트 배열로 반환
+        return htmlContent.toByteArray(Charsets.UTF_8)
+    }
+
+    fun getMemberReceipts(memberId: Long): List<OrderReceiptSummary> {
+        val member = memberRepository.findById(memberId).orElse(null)
+            ?: throw IllegalArgumentException("Member not found with id: $memberId")
+
+        val orders = orderRepository.findByMemberIdWithDetailsOrderBySubmittedAtDesc(memberId)
+        
+        return orders.map { order ->
+            val latestPayment = orderPaymentRepository.findByOrderIdOrderByCreatedAtDesc(order.id!!)
+                .firstOrNull()
+            
+            val receiptNumber = "REC-${order.orderNumber?.replace("ORD-", "") ?: order.id}"
+            val unitPrice = order.adTask.round.orderAmount
+            val subtotal = unitPrice.multiply(BigDecimal(order.quantity))
+            val vatAmount = subtotal.multiply(BigDecimal("0.1"))
+            val finalAmount = subtotal.add(vatAmount)
+
+            OrderReceiptSummary(
+                orderId = order.id!!,
+                receiptNumber = receiptNumber,
+                orderNumber = order.orderNumber ?: "ORD-${order.id}",
+                productName = order.productName,
+                totalAmount = finalAmount,
+                paymentStatus = latestPayment?.paymentStatus ?: PaymentStatus.WAITING,
+                issueDate = LocalDateTime.now(),
+                orderDate = order.submittedAt
+            )
+        }
+    }
+
+    private fun generateReceiptHtml(receipt: OrderReceiptResponse): String {
+        return """
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="UTF-8">
+            <title>영수증 - ${receipt.receiptNumber}</title>
+            <style>
+                body { font-family: Arial, sans-serif; margin: 20px; }
+                .header { text-align: center; margin-bottom: 30px; }
+                .company-info { margin-bottom: 20px; }
+                .customer-info { margin-bottom: 20px; }
+                .order-details { margin-bottom: 20px; }
+                .payment-info { margin-bottom: 20px; }
+                .total-section { border-top: 2px solid #000; padding-top: 10px; font-weight: bold; }
+                table { width: 100%; border-collapse: collapse; }
+                th, td { padding: 8px; text-align: left; border-bottom: 1px solid #ddd; }
+            </style>
+        </head>
+        <body>
+            <div class="header">
+                <h1>영수증</h1>
+                <h2>${receipt.receiptNumber}</h2>
+                <p>발행일: ${receipt.issueDate}</p>
+            </div>
+
+            <div class="company-info">
+                <h3>발행업체</h3>
+                <p>${receipt.companyInfo.companyName}</p>
+                <p>사업자번호: ${receipt.companyInfo.businessNumber}</p>
+                <p>주소: ${receipt.companyInfo.address}</p>
+                <p>전화: ${receipt.companyInfo.phone}</p>
+            </div>
+
+            <div class="customer-info">
+                <h3>고객정보</h3>
+                <p>회사명: ${receipt.customerInfo.companyName}</p>
+                <p>이메일: ${receipt.customerInfo.email}</p>
+                <p>연락처: ${receipt.customerInfo.contactNumber ?: "없음"}</p>
+                <p>사업자번호: ${receipt.customerInfo.businessRegistrationNumber ?: "없음"}</p>
+            </div>
+
+            <div class="order-details">
+                <h3>주문정보</h3>
+                <table>
+                    <tr><th>주문번호</th><td>${receipt.orderNumber}</td></tr>
+                    <tr><th>상품명</th><td>${receipt.orderDetails.productName}</td></tr>
+                    <tr><th>수량</th><td>${receipt.orderDetails.quantity}</td></tr>
+                    <tr><th>단가</th><td>${receipt.orderDetails.unitPrice.toPlainString()}원</td></tr>
+                    <tr><th>소계</th><td>${receipt.orderDetails.subtotal.toPlainString()}원</td></tr>
+                    <tr><th>주문일</th><td>${receipt.orderDetails.orderDate}</td></tr>
+                    <tr><th>마감일</th><td>${receipt.orderDetails.deadline ?: "없음"}</td></tr>
+                </table>
+            </div>
+
+            <div class="payment-info">
+                <h3>결제정보</h3>
+                <p>결제방법: ${receipt.paymentInfo.paymentMethod}</p>
+                <p>결제상태: ${receipt.paymentInfo.paymentStatus}</p>
+                <p>은행: ${receipt.paymentInfo.bankName}</p>
+                <p>계좌번호: ${receipt.paymentInfo.accountNumber}</p>
+                <p>입금자: ${receipt.paymentInfo.depositorName ?: "미확인"}</p>
+            </div>
+
+            <div class="total-section">
+                <table>
+                    <tr><th>합계</th><td>${receipt.totalAmount.toPlainString()}원</td></tr>
+                    <tr><th>부가세(10%)</th><td>${receipt.vatAmount.toPlainString()}원</td></tr>
+                    <tr><th>총액</th><td>${receipt.finalAmount.toPlainString()}원</td></tr>
+                </table>
+            </div>
+        </body>
+        </html>
+        """.trimIndent()
     }
 }

@@ -8,7 +8,7 @@ data class RoundInfoResponse(
     val roundTitle: String,
     val adTasks: List<AdTaskInfo>,
     val orders: List<OrderInfo>,
-    val payments: List<PaymentInfo>
+    val payments: List<RoundPaymentInfo>
 )
 
 data class AdTaskInfo(
@@ -37,7 +37,7 @@ data class OrderInfo(
     val createdAt: LocalDateTime
 )
 
-data class PaymentInfo(
+data class RoundPaymentInfo(
     val id: Long,
     val orderId: Long,
     val applicationNumber: String,

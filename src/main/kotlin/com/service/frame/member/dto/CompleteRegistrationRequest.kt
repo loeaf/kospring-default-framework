@@ -9,8 +9,12 @@ data class CompleteRegistrationRequest(
     val companyName: String = "",
     val businessRegistrationNumber: String = "",
     val contactNumber: String = "",
+    val businessField: String = "",
+    val productDescription: String = "",
+    val companyDescription: String = "",
     val businessRegistrationFile: MultipartFile? = null,
     val telecommunicationSalesFile: MultipartFile? = null,
+    val advertisingRegistrationFile: MultipartFile? = null, // 광고업등록증 추가
     
     // 계약 동의 정보
     val rentalContractAgreed: Boolean = false,

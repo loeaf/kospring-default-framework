@@ -235,4 +235,43 @@ class OrderController(
         val result = orderService.purchaseAd(request)
         return ResponseEntity.ok(result)
     }
+
+    /**
+     * 내가 구매한 광고 목록 조회 (영수증 정보 포함)
+     */
+    @GetMapping("/members/{memberId}/my-purchases")
+    fun getMyPurchases(@PathVariable memberId: Long): ResponseEntity<List<MyPurchaseResponse>> {
+        val result = orderService.getMyPurchases(memberId)
+        return ResponseEntity.ok(result)
+    }
+
+    /**
+     * 광고 URL 다운로드 (octet-stream)
+     */
+    @GetMapping("/orders/{orderId}/ad-url/download")
+    fun downloadAdUrl(@PathVariable orderId: Long): ResponseEntity<Any> {
+        val urlContent = orderService.downloadAdUrl(orderId)
+        val headers = org.springframework.http.HttpHeaders()
+        headers.add("Content-Disposition", "attachment; filename=ad-url-${orderId}.html")
+        headers.add("Content-Type", "application/octet-stream")
+        
+        return ResponseEntity.ok()
+            .headers(headers)
+            .body(urlContent)
+    }
+
+    /**
+     * 주문 영수증 다운로드 (HTML)
+     */
+    @GetMapping("/orders/{orderId}/receipt/download")
+    fun downloadOrderReceipt(@PathVariable orderId: Long): ResponseEntity<Any> {
+        val receiptContent = orderService.downloadOrderReceipt(orderId)
+        val headers = org.springframework.http.HttpHeaders()
+        headers.add("Content-Disposition", "attachment; filename=receipt-${orderId}.html")
+        headers.add("Content-Type", "application/octet-stream")
+        
+        return ResponseEntity.ok()
+            .headers(headers)
+            .body(receiptContent)
+    }
 }

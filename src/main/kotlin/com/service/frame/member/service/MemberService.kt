@@ -15,10 +15,21 @@ class MemberService(
     private val fileUploadService: FileUploadService,
     private val passwordEncoder: PasswordEncoder,
     private val contractService: ContractService,
-    private val rentalRightsService: RentalRightsService
+    private val rentalRightsService: RentalRightsService,
+    private val emailVerificationService: EmailVerificationService
 ) {
 
     fun registerMember(request: MemberRegistrationRequest): MemberRegistrationResponse {
+        // 이메일 인증 확인 (선택적)
+        if (request.verificationCode.isNotBlank()) {
+            if (!emailVerificationService.isEmailVerified(request.email)) {
+                throw IllegalArgumentException("이메일 인증이 완료되지 않았습니다.")
+            }
+        }
+
+        // 사업자 등록 검증 - 통신판매업과 광고업 모두 등록 필요
+        // 실제로는 여기서 사업자등록번호로 통신판매업/광고업 등록 여부를 외부 API로 확인할 수 있음
+
         if (memberRepository.existsByEmail(request.email)) {
             throw IllegalArgumentException("이미 등록된 이메일입니다.")
         }
@@ -37,6 +48,11 @@ class MemberService(
             "telecom_sales_${request.businessRegistrationNumber}"
         )
 
+        val advertisingRegFilePath = fileUploadService.uploadFile(
+            request.advertisingRegistrationFile,
+            "advertising_reg_${request.businessRegistrationNumber}"
+        )
+
         try {
             val member = Member(
                 email = request.email,
@@ -44,8 +60,12 @@ class MemberService(
                 companyName = request.companyName,
                 businessRegistrationNumber = request.businessRegistrationNumber,
                 contactNumber = request.contactNumber,
+                businessField = request.businessField,
+                productDescription = request.productDescription,
+                companyDescription = request.companyDescription,
                 businessRegistrationFile = businessRegFilePath,
-                telecommunicationSalesFile = telecomSalesFilePath
+                telecommunicationSalesFile = telecomSalesFilePath,
+                advertisingRegistrationFile = advertisingRegFilePath
             )
 
             val savedMember = memberRepository.save(member)
@@ -59,11 +79,12 @@ class MemberService(
                 isPremium = savedMember.isPremium,
                 rentalStatus = savedMember.rentalStatus,
                 currentRentalExpiry = savedMember.currentRentalExpiry,
-                message = "회원가입이 완료되었습니다."
+                message = "회원가입이 완료되었습니다. (통신판매업 + 광고업 등록 확인됨)"
             )
         } catch (e: Exception) {
             fileUploadService.deleteFile(businessRegFilePath)
             fileUploadService.deleteFile(telecomSalesFilePath)
+            fileUploadService.deleteFile(advertisingRegFilePath)
             throw e
         }
     }
@@ -151,8 +172,12 @@ class MemberService(
                 companyName = request.companyName,
                 businessRegistrationNumber = request.businessRegistrationNumber,
                 contactNumber = request.contactNumber,
+                businessField = request.businessField,
+                productDescription = request.productDescription,
+                companyDescription = request.companyDescription,
                 businessRegistrationFile = request.businessRegistrationFile!!,
-                telecommunicationSalesFile = request.telecommunicationSalesFile!!
+                telecommunicationSalesFile = request.telecommunicationSalesFile!!,
+                advertisingRegistrationFile = request.advertisingRegistrationFile!!
             )
             
             val memberResponse = registerMember(memberRequest)

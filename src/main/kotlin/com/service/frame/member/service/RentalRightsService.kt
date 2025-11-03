@@ -26,6 +26,12 @@ class RentalRightsService(
             IllegalArgumentException("회원을 찾을 수 없습니다.")
         }
 
+        // 해당 라운드(날짜)에 이미 구매한 이력이 있는지 확인
+        val alreadyPurchasedToday = rentalRightsRepository.existsByMemberAndPurchaseDate(member, request.purchaseDate)
+        if (alreadyPurchasedToday) {
+            throw IllegalArgumentException("해당 라운드에서 이미 임대권을 구매하셨습니다.")
+        }
+
         val expiryDate = request.purchaseDate.plusYears(request.durationYears.toLong())
 
         val rentalRights = RentalRights(

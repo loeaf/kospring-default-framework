@@ -3,6 +3,7 @@ package com.service.frame.member.controller
 import com.service.frame.member.dto.*
 import com.service.frame.member.entity.RentalStatus
 import com.service.frame.member.service.MemberService
+import com.service.frame.member.service.EmailVerificationService
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
@@ -11,7 +12,8 @@ import org.springframework.web.multipart.MultipartFile
 @RestController
 @RequestMapping("/api/members")
 class MemberController(
-    private val memberService: MemberService
+    private val memberService: MemberService,
+    private val emailVerificationService: EmailVerificationService
 ) {
 
     @PostMapping("/register")
@@ -21,8 +23,13 @@ class MemberController(
         @RequestParam companyName: String,
         @RequestParam businessRegistrationNumber: String,
         @RequestParam contactNumber: String,
+        @RequestParam businessField: String,
+        @RequestParam productDescription: String,
+        @RequestParam companyDescription: String,
         @RequestParam businessRegistrationFile: MultipartFile,
-        @RequestParam telecommunicationSalesFile: MultipartFile
+        @RequestParam telecommunicationSalesFile: MultipartFile,
+        @RequestParam advertisingRegistrationFile: MultipartFile,
+        @RequestParam(required = false, defaultValue = "") verificationCode: String
     ): ResponseEntity<MemberRegistrationResponse> {
         return try {
             val request = MemberRegistrationRequest(
@@ -31,8 +38,13 @@ class MemberController(
                 companyName = companyName,
                 businessRegistrationNumber = businessRegistrationNumber,
                 contactNumber = contactNumber,
+                businessField = businessField,
+                productDescription = productDescription,
+                companyDescription = companyDescription,
                 businessRegistrationFile = businessRegistrationFile,
-                telecommunicationSalesFile = telecommunicationSalesFile
+                telecommunicationSalesFile = telecommunicationSalesFile,
+                advertisingRegistrationFile = advertisingRegistrationFile,
+                verificationCode = verificationCode
             )
 
             val response = memberService.registerMember(request)
@@ -118,8 +130,12 @@ class MemberController(
         @RequestParam companyName: String,
         @RequestParam businessRegistrationNumber: String,
         @RequestParam contactNumber: String,
+        @RequestParam businessField: String,
+        @RequestParam productDescription: String,
+        @RequestParam companyDescription: String,
         @RequestParam businessRegistrationFile: MultipartFile,
         @RequestParam telecommunicationSalesFile: MultipartFile,
+        @RequestParam advertisingRegistrationFile: MultipartFile,
         @RequestParam rentalContractAgreed: Boolean,
         @RequestParam serviceContractAgreed: Boolean,
         @RequestParam marketingAgreed: Boolean,
@@ -132,8 +148,12 @@ class MemberController(
                 companyName = companyName,
                 businessRegistrationNumber = businessRegistrationNumber,
                 contactNumber = contactNumber,
+                businessField = businessField,
+                productDescription = productDescription,
+                companyDescription = companyDescription,
                 businessRegistrationFile = businessRegistrationFile,
                 telecommunicationSalesFile = telecommunicationSalesFile,
+                advertisingRegistrationFile = advertisingRegistrationFile,
                 rentalContractAgreed = rentalContractAgreed,
                 serviceContractAgreed = serviceContractAgreed,
                 marketingAgreed = marketingAgreed,
@@ -165,5 +185,121 @@ class MemberController(
                 )
             )
         }
+    }
+
+    /**
+     * 이메일 인증 링크 발송
+     */
+    @PostMapping("/email/send-verification")
+    fun sendEmailVerification(@RequestBody request: EmailVerificationRequest): ResponseEntity<EmailVerificationResponse> {
+        val response = emailVerificationService.sendVerificationLink(request)
+        return if (response.success) {
+            ResponseEntity.ok(response)
+        } else {
+            ResponseEntity.badRequest().body(response)
+        }
+    }
+
+    /**
+     * 이메일 인증 (클릭 기반)
+     */
+    @GetMapping("/email/verify")
+    fun verifyEmailToken(@RequestParam token: String): ResponseEntity<String> {
+        val response = emailVerificationService.verifyToken(token)
+        return if (response.success) {
+            ResponseEntity.ok().body(
+                """
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <meta charset="UTF-8">
+                    <title>이메일 인증 완료</title>
+                    <style>
+                        body { 
+                            font-family: Arial, sans-serif; 
+                            text-align: center; 
+                            padding: 50px;
+                            background-color: #f5f5f5;
+                        }
+                        .container {
+                            background: white;
+                            padding: 40px;
+                            border-radius: 10px;
+                            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+                            display: inline-block;
+                        }
+                        .success {
+                            color: #28a745;
+                            font-size: 24px;
+                            margin-bottom: 20px;
+                        }
+                        .email {
+                            color: #6c757d;
+                            font-size: 16px;
+                        }
+                    </style>
+                </head>
+                <body>
+                    <div class="container">
+                        <div class="success">✓ 이메일 인증이 완료되었습니다!</div>
+                        <div class="email">${response.email}</div>
+                        <p>이제 회원가입을 진행하실 수 있습니다.</p>
+                    </div>
+                </body>
+                </html>
+                """.trimIndent()
+            )
+        } else {
+            ResponseEntity.badRequest().body(
+                """
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <meta charset="UTF-8">
+                    <title>인증 실패</title>
+                    <style>
+                        body { 
+                            font-family: Arial, sans-serif; 
+                            text-align: center; 
+                            padding: 50px;
+                            background-color: #f5f5f5;
+                        }
+                        .container {
+                            background: white;
+                            padding: 40px;
+                            border-radius: 10px;
+                            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+                            display: inline-block;
+                        }
+                        .error {
+                            color: #dc3545;
+                            font-size: 24px;
+                            margin-bottom: 20px;
+                        }
+                    </style>
+                </head>
+                <body>
+                    <div class="container">
+                        <div class="error">✗ 인증에 실패했습니다</div>
+                        <p>${response.message}</p>
+                    </div>
+                </body>
+                </html>
+                """.trimIndent()
+            )
+        }
+    }
+
+    /**
+     * 이메일 인증 상태 확인
+     */
+    @GetMapping("/email/verification-status")
+    fun checkEmailVerificationStatus(@RequestParam email: String): ResponseEntity<Map<String, Any>> {
+        val isVerified = emailVerificationService.isEmailVerified(email)
+        return ResponseEntity.ok(mapOf(
+            "email" to email,
+            "isVerified" to isVerified,
+            "message" to if (isVerified) "이메일 인증 완료" else "이메일 인증 필요"
+        ))
     }
 }

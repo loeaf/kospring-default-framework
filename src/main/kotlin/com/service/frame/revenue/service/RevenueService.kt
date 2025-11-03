@@ -26,32 +26,31 @@ class RevenueService(
 ) {
     
     fun getRevenueList(request: RevenueFilterRequest, memberId: Long): RevenueListResponse {
-        // revenue_transactions 테이블에서 직접 조회
+        // fetch join을 사용하여 N+1 문제 해결
         val transactions = if (request.transactionType != null) {
-            revenueTransactionRepository.findByMemberIdAndTransactionType(
+            revenueTransactionRepository.findByMemberIdAndTransactionTypeWithFetch(
                 memberId, 
                 request.transactionType!!
             )
         } else {
-            revenueTransactionRepository.findByMemberId(memberId)
+            revenueTransactionRepository.findByMemberIdWithFetch(memberId)
         }
         
         // 기간 필터링 적용
         val filteredTransactions = applyPeriodFilter(transactions, request.period)
         
-        // RevenueItemResponse로 변환
+        // RevenueItemResponse로 변환 (이미 fetch join으로 로딩됨)
         val revenueItems = filteredTransactions.map { transaction ->
             mapToRevenueItemResponse(transaction)
         }
         
-        // 날짜 순으로 정렬
-        val sortedItems = revenueItems.sortedByDescending { it.transactionDate }
+        // 이미 DB에서 정렬되어 오므로 추가 정렬 불필요
         
-        val summary = calculateRevenueSummary(filteredTransactions, request.period)
+        val summary = calculateRevenueSummaryOptimized(memberId, request.period)
         
         return RevenueListResponse(
-            items = sortedItems,
-            totalCount = sortedItems.size,
+            items = revenueItems,
+            totalCount = revenueItems.size,
             summary = summary
         )
     }
@@ -325,6 +324,96 @@ class RevenueService(
         val monthlyGrowth = calculatePercentageGrowth(previousNetRevenue, currentNetRevenue)
         
         return Triple(monthlyGrowth, incomeGrowth, expenseGrowth)
+    }
+    
+    // 최적화된 요약 계산 메서드
+    private fun calculateRevenueSummaryOptimized(memberId: Long, period: RevenuePeriod?): RevenueSummaryResponse {
+        if (period == null) {
+            // 전체 기간: 기존 방식 사용
+            val totalIncome = revenueTransactionRepository.sumAmountByMemberIdAndTransactionType(memberId, TransactionType.INCOME) ?: BigDecimal.ZERO
+            val totalExpense = revenueTransactionRepository.sumAmountByMemberIdAndTransactionType(memberId, TransactionType.EXPENSE) ?: BigDecimal.ZERO
+            val netRevenue = totalIncome - totalExpense
+            
+            return RevenueSummaryResponse(
+                totalIncome = totalIncome,
+                totalExpense = totalExpense,
+                netRevenue = netRevenue,
+                monthlyGrowth = 0.0,
+                incomeGrowth = 0.0,
+                expenseGrowth = 0.0,
+                period = "ALL"
+            )
+        }
+        
+        val now = LocalDate.now()
+        val (currentStart, currentEnd) = when (period) {
+            RevenuePeriod.WEEK -> Pair(now.minusWeeks(1), now)
+            RevenuePeriod.MONTH -> Pair(now.minusMonths(1), now)
+            RevenuePeriod.QUARTER -> Pair(now.minusMonths(3), now)
+            RevenuePeriod.YEAR -> Pair(now.minusYears(1), now)
+        }
+        
+        // 현재 기간 집계 쿼리 실행
+        val currentStats = revenueTransactionRepository.getRevenueStatsByMemberIdAndPeriod(
+            memberId, currentStart, currentEnd
+        )
+        
+        var totalIncome = BigDecimal.ZERO
+        var totalExpense = BigDecimal.ZERO
+        
+        currentStats.forEach { stat ->
+            val transactionType = stat[0] as TransactionType
+            val amount = stat[1] as BigDecimal
+            
+            when (transactionType) {
+                TransactionType.INCOME -> totalIncome = amount
+                TransactionType.EXPENSE -> totalExpense = amount
+            }
+        }
+        
+        val netRevenue = totalIncome - totalExpense
+        
+        // 이전 기간과의 비교를 위한 집계 (성장률 계산)
+        val (previousStart, previousEnd) = when (period) {
+            RevenuePeriod.WEEK -> Pair(now.minusWeeks(2), now.minusWeeks(1))
+            RevenuePeriod.MONTH -> Pair(now.minusMonths(2), now.minusMonths(1))
+            RevenuePeriod.QUARTER -> Pair(now.minusMonths(6), now.minusMonths(3))
+            RevenuePeriod.YEAR -> Pair(now.minusYears(2), now.minusYears(1))
+        }
+        
+        val previousStats = revenueTransactionRepository.getRevenueStatsByMemberIdAndPeriod(
+            memberId, previousStart, previousEnd
+        )
+        
+        var previousIncome = BigDecimal.ZERO
+        var previousExpense = BigDecimal.ZERO
+        
+        previousStats.forEach { stat ->
+            val transactionType = stat[0] as TransactionType
+            val amount = stat[1] as BigDecimal
+            
+            when (transactionType) {
+                TransactionType.INCOME -> previousIncome = amount
+                TransactionType.EXPENSE -> previousExpense = amount
+            }
+        }
+        
+        val previousNetRevenue = previousIncome - previousExpense
+        
+        // 성장률 계산
+        val incomeGrowth = calculatePercentageGrowth(previousIncome, totalIncome)
+        val expenseGrowth = calculatePercentageGrowth(previousExpense, totalExpense)
+        val monthlyGrowth = calculatePercentageGrowth(previousNetRevenue, netRevenue)
+        
+        return RevenueSummaryResponse(
+            totalIncome = totalIncome,
+            totalExpense = totalExpense,
+            netRevenue = netRevenue,
+            monthlyGrowth = monthlyGrowth,
+            incomeGrowth = incomeGrowth,
+            expenseGrowth = expenseGrowth,
+            period = period.name
+        )
     }
     
     private fun calculatePercentageGrowth(previous: BigDecimal, current: BigDecimal): Double {

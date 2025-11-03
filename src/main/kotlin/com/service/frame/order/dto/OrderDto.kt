@@ -228,3 +228,99 @@ data class AdPurchaseResponse(
     val order: OrderResponse,
     val payment: OrderPaymentInfo
 )
+
+// 내가 구매한 광고 목록 응답 (통합 버전)
+data class MyPurchaseResponse(
+    val orderId: Long,
+    val orderNumber: String,
+    val roundId: Long,
+    val adTaskId: Long,
+    val productName: String,
+    val quantity: Int,
+    val orderStatus: OrderStatus,
+    val orderDate: LocalDateTime,
+    val paymentStatus: PaymentStatus?,
+    val paymentAmount: BigDecimal,
+    val deadline: LocalDate?,
+    val requirements: String?,
+    val totalParticipants: Int,
+    val roundTitle: String?,
+    val adUrl: String?, // 광고 URL
+    val receiptInfo: ReceiptSummary // 영수증 요약 정보
+)
+
+// 영수증 요약 정보
+data class ReceiptSummary(
+    val receiptNumber: String,
+    val totalAmount: BigDecimal,
+    val vatAmount: BigDecimal,
+    val finalAmount: BigDecimal,
+    val companyName: String = "CNC"
+)
+
+// 주문 영수증 상세 응답
+data class OrderReceiptResponse(
+    val receiptNumber: String,
+    val orderNumber: String,
+    val issueDate: LocalDateTime,
+    val customerInfo: CustomerInfo,
+    val orderDetails: OrderDetails,
+    val paymentInfo: PaymentInfo,
+    val companyInfo: CompanyInfo,
+    val totalAmount: BigDecimal,
+    val vatAmount: BigDecimal,
+    val finalAmount: BigDecimal
+)
+
+// 고객 정보
+data class CustomerInfo(
+    val companyName: String,
+    val email: String,
+    val contactNumber: String?,
+    val businessRegistrationNumber: String?
+)
+
+// 주문 상세 정보
+data class OrderDetails(
+    val productName: String,
+    val quantity: Int,
+    val unitPrice: BigDecimal,
+    val subtotal: BigDecimal,
+    val orderDate: LocalDateTime,
+    val deadline: LocalDate?,
+    val requirements: String?,
+    val roundId: Long,
+    val adTaskId: Long
+)
+
+// 결제 정보
+data class PaymentInfo(
+    val paymentMethod: String,
+    val paymentStatus: PaymentStatus,
+    val paymentDate: LocalDateTime?,
+    val depositorName: String?,
+    val bankName: String,
+    val accountNumber: String,
+    val applicationNumber: String?
+)
+
+// 회사 정보
+data class CompanyInfo(
+    val companyName: String = "KoSpring",
+    val businessNumber: String = "123-45-67890",
+    val address: String = "서울시 강남구 테헤란로 123",
+    val phone: String = "02-1234-5678",
+    val email: String = "contact@kospring.com"
+)
+
+// 영수증 목록용 요약 정보
+data class OrderReceiptSummary(
+    val orderId: Long,
+    val receiptNumber: String,
+    val orderNumber: String,
+    val productName: String,
+    val totalAmount: BigDecimal,
+    val paymentStatus: PaymentStatus,
+    val issueDate: LocalDateTime,
+    val orderDate: LocalDateTime
+)

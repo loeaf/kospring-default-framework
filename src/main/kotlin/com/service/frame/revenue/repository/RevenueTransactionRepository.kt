@@ -13,7 +13,49 @@ interface RevenueTransactionRepository : JpaRepository<RevenueTransaction, Long>
     
     fun findByMemberIdOrderByTransactionDateDesc(memberId: Long): List<RevenueTransaction>
     
-    // RevenueService에서 사용하는 메서드들 추가
+    // 성능 최적화: fetch join을 사용한 메서드들
+    @Query("""
+        SELECT rt FROM RevenueTransaction rt 
+        LEFT JOIN FETCH rt.member m
+        LEFT JOIN FETCH rt.assignment a
+        LEFT JOIN FETCH rt.order o
+        WHERE rt.member.id = :memberId
+        ORDER BY rt.transactionDate DESC
+    """)
+    fun findByMemberIdWithFetch(@Param("memberId") memberId: Long): List<RevenueTransaction>
+    
+    @Query("""
+        SELECT rt FROM RevenueTransaction rt 
+        LEFT JOIN FETCH rt.member m
+        LEFT JOIN FETCH rt.assignment a
+        LEFT JOIN FETCH rt.order o
+        WHERE rt.member.id = :memberId AND rt.transactionType = :transactionType
+        ORDER BY rt.transactionDate DESC
+    """)
+    fun findByMemberIdAndTransactionTypeWithFetch(
+        @Param("memberId") memberId: Long, 
+        @Param("transactionType") transactionType: TransactionType
+    ): List<RevenueTransaction>
+    
+    // 기간별 집계 쿼리 추가
+    @Query("""
+        SELECT 
+            rt.transactionType,
+            COALESCE(SUM(rt.amount), 0) as totalAmount,
+            COUNT(rt) as transactionCount
+        FROM RevenueTransaction rt 
+        WHERE rt.member.id = :memberId 
+        AND rt.transactionDate >= :startDate 
+        AND rt.transactionDate <= :endDate
+        GROUP BY rt.transactionType
+    """)
+    fun getRevenueStatsByMemberIdAndPeriod(
+        @Param("memberId") memberId: Long,
+        @Param("startDate") startDate: LocalDate,
+        @Param("endDate") endDate: LocalDate
+    ): List<Array<Any>>
+    
+    // 기존 메서드들 (하위 호환성)
     fun findByMemberId(memberId: Long): List<RevenueTransaction>
     
     fun findByMemberIdAndTransactionType(

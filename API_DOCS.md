@@ -1,9 +1,104 @@
 # REST API 문서
 
+## 이메일 인증 API
+
+### 1. 이메일 인증 링크 발송
+회원가입 전에 이메일 인증 링크를 발송합니다.
+
+**Endpoint:** `POST /api/members/email/send-verification`
+
+**Content-Type:** `application/json`
+
+#### Request Body
+```json
+{
+  "email": "user@example.com"
+}
+```
+
+#### Response
+**Success (200 OK)**
+```json
+{
+  "success": true,
+  "message": "인증 링크가 이메일로 발송되었습니다. 30분 내에 클릭해주세요.",
+  "email": "user@example.com"
+}
+```
+
+**Error (400 Bad Request)**
+```json
+{
+  "success": false,
+  "message": "이미 가입된 이메일입니다.",
+  "email": "user@example.com"
+}
+```
+
+#### cURL 예제
+```bash
+curl -X POST http://localhost:8080/api/members/email/send-verification \
+  -H "Content-Type: application/json" \
+  -d '{"email": "user@example.com"}'
+```
+
+### 2. 이메일 인증 (클릭 기반)
+발송된 이메일의 인증 링크를 클릭하여 인증을 완료합니다.
+
+**Endpoint:** `GET /api/members/email/verify?token={verification_token}`
+
+**Content-Type:** `text/html`
+
+#### Request Parameters
+| 파라미터 | 타입 | 필수 | 설명 |
+|---------|------|------|------|
+| token | String | Y | 이메일로 발송된 인증 토큰 |
+
+#### Response
+**Success (200 OK)**
+- HTML 페이지로 인증 성공 메시지 표시
+- 사용자에게 회원가입 진행 안내
+
+**Error (400 Bad Request)**
+- HTML 페이지로 인증 실패 메시지 표시
+- 토큰 만료 또는 유효하지 않은 토큰 안내
+
+#### 사용 방법
+1. 이메일 인증 링크 발송 API 호출
+2. 사용자 이메일에서 인증 링크 클릭
+3. 자동으로 인증 완료 페이지로 이동
+4. 회원가입 진행
+
+### 3. 이메일 인증 상태 확인
+이메일의 인증 상태를 확인합니다.
+
+**Endpoint:** `GET /api/members/email/verification-status`
+
+#### Request Parameters
+| 파라미터 | 타입 | 필수 | 설명 |
+|---------|------|------|------|
+| email | String | Y | 확인할 이메일 주소 |
+
+#### Response
+```json
+{
+  "email": "user@example.com",
+  "isVerified": true,
+  "message": "이메일 인증 완료"
+}
+```
+
+#### cURL 예제
+```bash
+curl -X GET "http://localhost:8080/api/members/email/verification-status?email=user@example.com"
+```
+
+---
+
 ## 회원가입 API
 
-### 회원가입
-회원가입을 처리하는 API입니다.
+### 회원가입 (이메일 인증 포함)
+이메일 인증 후 회원가입을 처리하는 API입니다.
 
 **Endpoint:** `POST /api/members/register`
 
@@ -19,6 +114,8 @@
 | contactNumber | String | Y | 연락처 |
 | businessRegistrationFile | File | Y | 사업자등록증 파일 |
 | telecommunicationSalesFile | File | Y | 통신판매업신고증 파일 |
+| advertisingRegistrationFile | File | Y | 광고업등록증 파일 |
+| verificationCode | String | N | 이메일 인증 확인 (선택) |
 
 #### Response
 **Success (200 OK)**
@@ -75,18 +172,168 @@ curl -X POST http://localhost:8080/api/members/register \
   -F "businessRegistrationNumber=123-45-67890" \
   -F "contactNumber=010-1234-5678" \
   -F "businessRegistrationFile=@./business_registration.pdf" \
-  -F "telecommunicationSalesFile=@./telecom_sales.pdf"
+  -F "telecommunicationSalesFile=@./telecom_sales.pdf" \
+  -F "advertisingRegistrationFile=@./advertising_registration.pdf" \
+  -F "verificationCode="
 ```
 
 #### 검증 규칙
-- 이메일: 중복 불가
+- 이메일: 중복 불가, 인증 완료 권장
 - 사업자등록번호: 중복 불가
 - 파일: 비어있지 않은 파일만 허용
 - 비밀번호: BCrypt로 암호화되어 저장
+- 이메일 인증: 클릭 기반 인증, 30분 유효
 
-#### 에러 메시지
+#### 회원가입 플로우 (권장)
+
+##### 1단계: 이메일 인증 링크 발송
+먼저 이메일 주소로 인증 링크를 발송합니다.
+
+```bash
+curl -X POST http://localhost:8080/api/members/email/send-verification \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "user@example.com"
+  }'
+```
+
+**응답 예시:**
+```json
+{
+  "success": true,
+  "message": "인증 링크가 이메일로 발송되었습니다. 30분 내에 클릭해주세요.",
+  "email": "user@example.com"
+}
+```
+
+##### 2단계: 이메일 인증 링크 클릭
+이메일로 받은 인증 링크를 클릭하여 인증을 완료합니다.
+
+**인증 과정:**
+1. 이메일에서 인증 링크 클릭
+2. 브라우저에서 인증 완료 페이지 확인
+3. 인증 상태가 자동으로 완료됨
+
+**예시 인증 링크:**
+```
+http://localhost:8080/api/members/email/verify?token=abc123def456...
+```
+
+인증 성공 시 HTML 페이지에 "이메일 인증이 완료되었습니다!" 메시지가 표시됩니다.
+
+##### 3단계: 회원가입 진행
+이메일 인증이 완료된 후 회원가입을 진행합니다.
+
+```bash
+curl -X POST http://localhost:8080/api/members/register \
+  -F "email=user@example.com" \
+  -F "password=securePassword123!" \
+  -F "companyName=테스트 회사" \
+  -F "businessRegistrationNumber=123-45-67890" \
+  -F "contactNumber=010-1234-5678" \
+  -F "businessRegistrationFile=@./business_registration.pdf" \
+  -F "telecommunicationSalesFile=@./telecom_sales.pdf" \
+  -F "advertisingRegistrationFile=@./advertising_registration.pdf" \
+  -F "verificationCode="
+```
+
+**응답 예시:**
+```json
+{
+  "id": 1,
+  "email": "user@example.com",
+  "companyName": "테스트 회사",
+  "businessRegistrationNumber": "123-45-67890",
+  "contactNumber": "010-1234-5678",
+  "isPremium": false,
+  "rentalStatus": "INACTIVE",
+  "currentRentalExpiry": null,
+  "message": "회원가입이 완료되었습니다."
+}
+```
+
+##### (선택사항) 인증 상태 확인
+언제든지 이메일 인증 상태를 확인할 수 있습니다.
+
+```bash
+curl -X GET "http://localhost:8080/api/members/email/verification-status?email=user@example.com"
+```
+
+**응답 예시:**
+```json
+{
+  "email": "user@example.com",
+  "isVerified": true,
+  "message": "이메일 인증 완료"
+}
+```
+
+#### 주요 특징
+- **인증 링크 유효시간**: 30분
+- **인증 방식**: 이메일 내 버튼 클릭 (원클릭 인증)
+- **재발송**: 기존 미인증 토큰은 자동 삭제 후 새로 발송
+- **보안**: 이미 가입된 이메일은 인증 링크 발송 차단
+- **사용자 친화적**: 코드 입력 없이 링크 클릭만으로 인증 완료
+
+#### 에러 시나리오 및 해결방법
+
+##### 1. 이미 가입된 이메일로 인증 링크 요청
+```bash
+# 요청
+curl -X POST http://localhost:8080/api/members/email/send-verification \
+  -H "Content-Type: application/json" \
+  -d '{"email": "existing@example.com"}'
+
+# 응답 (400 Bad Request)
+{
+  "success": false,
+  "message": "이미 가입된 이메일입니다.",
+  "email": "existing@example.com"
+}
+```
+
+##### 2. 유효하지 않은 인증 토큰으로 접근
+```bash
+# 잘못된 토큰으로 접근 시
+http://localhost:8080/api/members/email/verify?token=invalid_token
+
+# 브라우저에 HTML 오류 페이지 표시:
+# "인증에 실패했습니다"
+# "유효하지 않은 인증 링크입니다."
+```
+
+##### 3. 만료된 인증 링크 사용
+```bash
+# 만료된 토큰으로 접근 시
+http://localhost:8080/api/members/email/verify?token=expired_token
+
+# 브라우저에 HTML 오류 페이지 표시:
+# "인증에 실패했습니다"
+# "인증 링크가 만료되었습니다. 새로운 링크를 요청해주세요."
+```
+
+##### 4. 이메일 인증 없이 회원가입 시도
+```bash
+# 응답 (400 Bad Request)
+{
+  "id": 0,
+  "email": "user@example.com",
+  "companyName": "테스트 회사",
+  "businessRegistrationNumber": "123-45-67890",
+  "contactNumber": "010-1234-5678",
+  "isPremium": false,
+  "rentalStatus": "INACTIVE",
+  "currentRentalExpiry": null,
+  "message": "이메일 인증이 완료되지 않았습니다."
+}
+```
+
+#### 에러 메시지 목록
 - "이미 등록된 이메일입니다."
 - "이미 등록된 사업자등록번호입니다."
+- "이메일 인증이 완료되지 않았습니다."
+- "유효하지 않은 인증 링크입니다."
+- "인증 링크가 만료되었습니다. 새로운 링크를 요청해주세요."
 - "파일이 비어있습니다."
 - "파일명이 없습니다."
 - "서버 오류가 발생했습니다."
@@ -112,6 +359,7 @@ curl -X POST http://localhost:8080/api/members/register \
 | contactNumber | String | Y | 연락처 |
 | businessRegistrationFile | File | Y | 사업자등록증 파일 |
 | telecommunicationSalesFile | File | Y | 통신판매업신고증 파일 |
+| advertisingRegistrationFile | File | Y | 광고업등록증 파일 |
 | rentalContractAgreed | Boolean | Y | 임대권 구매 계약 동의 |
 | serviceContractAgreed | Boolean | Y | 광고 게시 용역 계약 동의 |
 | marketingAgreed | Boolean | Y | 마케팅 정보 수신 동의 |
@@ -172,6 +420,7 @@ curl -X POST http://localhost:8080/api/members/complete-registration \
   -F "contactNumber=010-1234-5678" \
   -F "businessRegistrationFile=@./business_registration.pdf" \
   -F "telecommunicationSalesFile=@./telecom_sales.pdf" \
+  -F "advertisingRegistrationFile=@./advertising_registration.pdf" \
   -F "rentalContractAgreed=true" \
   -F "serviceContractAgreed=true" \
   -F "marketingAgreed=false" \
@@ -185,10 +434,11 @@ curl -X POST http://localhost:8080/api/members/complete-registration \
 
 #### 처리 단계
 1. 이메일 및 사업자등록번호 중복 확인
-2. 파일 업로드 및 회원 정보 저장
-3. 서비스 계약 체결
-4. 임대권 구매
-5. 회원 상태를 ACTIVE로 업데이트
+2. 통신판매업과 광고업 등록 증명서 파일 업로드
+3. 회원 정보 저장 (사업자등록증 + 통신판매업신고증 + 광고업등록증)
+4. 서비스 계약 체결
+5. 임대권 구매
+6. 회원 상태를 ACTIVE로 업데이트
 
 #### 에러 메시지
 - "이미 등록된 이메일입니다."
