@@ -172,6 +172,57 @@ class AdTaskController(
     }
 
     /**
+     * 기존 라운드에서 광고를 만들지 않은 신규 회원들을 위한 광고 생성
+     */
+    @PostMapping("/rounds/{roundId}/create-missing-ads")
+    fun createMissingAdsForRound(@PathVariable roundId: Long): ResponseEntity<Map<String, Any>> {
+        val round = roundRepository.findById(roundId).orElse(null)
+            ?: return ResponseEntity.notFound().build()
+
+        try {
+            val result = adTaskService.createMissingAdsForNewMembers(roundId)
+            
+            // 현재 참여자 수 다시 확인 (결과 반영)
+            val existingTasks = adTaskService.getRoundAds(roundId)
+            val currentParticipants = existingTasks.ads.map { it.memberId }.toSet().size
+            
+            val responseMessage = if (result.isEmpty()) {
+                if (round.maxParticipants != null && currentParticipants >= round.maxParticipants) {
+                    "라운드가 최대 참여자 수에 도달하여 처리하지 않았습니다"
+                } else {
+                    "모든 활성 회원이 이미 이 라운드에 참여하고 있습니다"
+                }
+            } else {
+                "Missing ads created successfully"
+            }
+            
+            return ResponseEntity.ok(mapOf<String, Any>(
+                "message" to responseMessage,
+                "roundId" to roundId,
+                "roundTitle" to round.title,
+                "maxParticipants" to (round.maxParticipants ?: "unlimited"),
+                "currentParticipants" to currentParticipants,
+                "availableSlots" to if (round.maxParticipants != null) (round.maxParticipants - currentParticipants) else "unlimited",
+                "newMembersCount" to result.size,
+                "totalAdTasksCreated" to result.sumOf { it.second.size },
+                "memberTasks" to result.map { (member, adTasks) ->
+                    mapOf(
+                        "memberId" to member.id,
+                        "memberEmail" to member.email,
+                        "companyName" to member.companyName,
+                        "adTaskIds" to adTasks.map { it.id },
+                        "adTypes" to adTasks.map { "${it.adType}_${it.adIndex}" }
+                    )
+                }
+            ))
+        } catch (e: Exception) {
+            return ResponseEntity.internalServerError().body(mapOf(
+                "error" to "Failed to create missing ads: ${e.message}"
+            ))
+        }
+    }
+
+    /**
      * 테스트용 ad_task 생성 API (여러 멤버에 대해 각각 3개의 광고를 자동 생성)
      */
     @PostMapping("/test-data")

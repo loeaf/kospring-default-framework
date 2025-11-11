@@ -63,7 +63,7 @@ data class Round(
 
     @Enumerated(EnumType.STRING)
     @Column(length = 20, nullable = false)
-    val status: RoundStatus = RoundStatus.ACTIVE,
+    val status: RoundStatus = RoundStatus.PREPARING,
 
     @Column(name = "max_participants")
     val maxParticipants: Int? = null,
@@ -85,7 +85,7 @@ data class Round(
         BigDecimal.ZERO, null, null, null, null, null,
         LocalDateTime.now(), LocalDateTime.now(),
         null, null, 7,
-        RoundStatus.ACTIVE, null, null, null, null
+        RoundStatus.PREPARING, null, null, null, null
     )
 
     // 게시 시작일 계산 (라운드 종료일 = 게시 시작일)
@@ -102,5 +102,5 @@ data class Round(
 
 
 enum class RoundStatus {
-    ACTIVE, CLOSED, PENDING
+    PREPARING, ACTIVE, CLOSED, PENDING
 }

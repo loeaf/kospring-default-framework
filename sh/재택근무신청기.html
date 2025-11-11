@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>재택근무 신청내역 생성기 (제목 제외)</title>
+    <style>
+        /* --- 입력 폼 관련 스타일 --- */
+        body { font-family: Arial, sans-serif; padding: 20px; background-color: #f4f7f6; }
+        .form-container { background-color: white; padding: 25px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 20px; }
+        h2 { border-bottom: 2px solid #3498db; padding-bottom: 10px; margin-top: 0; color: #34495e; }
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; margin-bottom: 5px; font-weight: bold; color: #34495e; }
+        .form-group input[type="date"], .form-group input[type="text"] { padding: 8px; border: 1px solid #ccc; border-radius: 4px; width: calc(100% - 18px); box-sizing: border-box; }
+        .checkbox-group label { display: inline-block; margin-right: 15px; font-weight: normal; }
+        button { background-color: #3498db; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; font-size: 16px; transition: background-color 0.3s; }
+        button:hover { background-color: #2980b9; }
+        .required-star { color: red; margin-left: 2px; }
+
+        /* --- 출력 미리보기 스타일 --- */
+        #output-container { margin-top: 30px; }
+        .tit_p { font-size: 18px; font-weight: bold; margin-bottom: 10px; color: #2c3e50; }
+
+        /* --- 생성된 HTML에 적용되는 스타일 (JS에서 복사용으로도 사용됨) --- */
+        .approval-view-container {
+            border: 1px solid #ddd;
+            width: 100%;
+            box-sizing: border-box;
+            font-size: 10pt;
+        }
+        .approval-row {
+            display: flex;
+            border-bottom: 1px solid #ddd;
+            min-height: 30px;
+        }
+        .approval-row.last-row {
+            border-bottom: none;
+        }
+        .approval-title-cell {
+            flex-basis: 200px;
+            padding: 8px 10px;
+            background-color: #f7f7f7;
+            border-right: 1px solid #ddd;
+            font-weight: bold;
+            text-align: center;
+            line-height: 1.4;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+        }
+        .approval-data-cell {
+            flex-grow: 1;
+            padding: 8px 10px;
+            text-align: left;
+            display: flex;
+            align-items: center;
+            justify-content: flex-start;
+        }
+        .approval-row.flex-two-col {
+            flex-wrap: nowrap;
+        }
+        .approval-row.flex-two-col .flex-item {
+            display: flex;
+            flex-basis: 50%;
+        }
+        .approval-row.flex-two-col .flex-item:first-child {
+            border-right: 1px solid #ddd;
+        }
+        .approval-row.flex-two-col .half-width {
+            flex-basis: 50%;
+        }
+        .approval-row.flex-two-col .flex-item .approval-title-cell.half-width {
+            border-right: 1px solid #ddd;
+        }
+        .approval-row.flex-two-col .flex-item:last-child .approval-title-cell.half-width {
+            border-left: none;
+        }
+        .approval-row.flex-two-col .flex-item:last-child .approval-data-cell.half-width {
+            border-right: none;
+        }
+        .approval-row .textL input[type="checkbox"] {
+            margin-right: 3px;
+            margin-left: 10px;
+        }
+        /* 복사용 텍스트 영역 */
+        #htmlCodeOutput { resize: vertical; }
+    </style>
+</head>
+<body>
+
+<div class="form-container">
+    <h2>🗓️ 재택근무 신청 정보 입력</h2>
+    <div class="form-group">
+        <label for="startDate">근무 시작일<span class="required-star">*</span></label>
+        <input type="date" id="startDate" value="2025-11-17">
+    </div>
+    <div class="form-group">
+        <label for="endDate">근무 종료일<span class="required-star">*</span></label>
+        <input type="date" id="endDate" value="2025-11-21">
+    </div>
+    <div class="form-group">
+        <label>사무실 근무 요일<span class="required-star">*</span></label>
+        <div class="checkbox-group">
+            <label><input type="checkbox" name="workdays" value="1" id="day1"> 월요일</label>
+            <label><input type="checkbox" name="workdays" value="2" id="day2" checked> 화요일</label>
+            <label><input type="checkbox" name="workdays" value="3" id="day3"> 수요일</label>
+            <label><input type="checkbox" name="workdays" value="4" id="day4" checked> 목요일</label>
+            <label><input type="checkbox" name="workdays" value="5" id="day5"> 금요일</label>
+        </div>
+    </div>
+    <div class="form-group">
+        <label for="workType">재택근무 유형</label>
+        <input type="text" id="workType" value="주3회">
+    </div>
+    <div class="form-group">
+        <label for="workAddress">근무지 주소</label>
+        <input type="text" id="workAddress" value="세종특별자치시 다솜1로 220 도램마을 5단지 502동 1602호">
+    </div>
+    <button onclick="generateApprovalContent()">신청내역 HTML 생성</button>
+</div>
+
+<div id="output-container">
+    <p class="tit_p mb5 mt5">미리보기: 신청내역</p>
+    <div id="generatedContent">
+        <p style="color: #888;">상단의 버튼을 눌러 신청내역을 생성하세요.</p>
+    </div>
+    <hr>
+    <p class="tit_p mb5 mt5" style="margin-top: 20px;">생성된 **HTML (스타일 포함)** 코드 (복사 용도)</p>
+    <textarea id="htmlCodeOutput" rows="15" style="width: 100%; border: 1px solid #ccc; padding: 10px; box-sizing: border-box;"></textarea>
+</div>
+
+<script>
+    function getDayLabel(value) {
+        switch(value) {
+            case 1: return '월요일';
+            case 2: return '화요일';
+            case 3: return '수요일';
+            case 4: return '목요일';
+            case 5: return '금요일';
+            default: return '';
+        }
+    }
+
+    function generateApprovalContent() {
+        const startDate = document.getElementById('startDate').value;
+        const endDate = document.getElementById('endDate').value;
+        const workType = document.getElementById('workType').value;
+        const workAddress = document.getElementById('workAddress').value;
+
+        let workdaysHtml = '';
+        for (let i = 1; i <= 5; i++) {
+            const dayInput = document.getElementById('day' + i);
+            const dayLabel = getDayLabel(i);
+            const isChecked = dayInput && dayInput.checked ? 'checked=""' : '';
+
+            workdaysHtml += `
+            <input name="workdays" type="checkbox" value="${i}" class="puddSetup workdays" pudd-label="${dayLabel}" disabled="disabled" ${isChecked}>${dayLabel}`;
+        }
+
+        // 기안서에 바로 붙여넣을 수 있도록 <style> 태그를 포함한 최종 HTML 생성
+        // '신청내역' 제목 DIV (btn_div)가 제거됨
+        const finalOutput = `
+<style>
+/* 컨테이너 */
+.approval-view-container {
+    border: 1px solid #ddd;
+    width: 100%;
+    box-sizing: border-box;
+    font-size: 10pt;
+}
+/* 행(Row) */
+.approval-row {
+    display: flex;
+    border-bottom: 1px solid #ddd;
+    min-height: 30px;
+}
+.approval-row.last-row {
+    border-bottom: none;
+}
+/* 제목 셀 (th 역할) */
+.approval-title-cell {
+    flex-basis: 200px;
+    padding: 8px 10px;
+    background-color: #f7f7f7;
+    border-right: 1px solid #ddd;
+    font-weight: bold;
+    text-align: center;
+    line-height: 1.4;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+}
+/* 데이터 셀 (td 역할) */
+.approval-data-cell {
+    flex-grow: 1;
+    padding: 8px 10px;
+    text-align: left;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+}
+.approval-row.flex-two-col {
+    flex-wrap: nowrap;
+}
+.approval-row.flex-two-col .flex-item {
+    display: flex;
+    flex-basis: 50%;
+}
+.approval-row.flex-two-col .flex-item:first-child {
+    border-right: 1px solid #ddd;
+}
+.approval-row.flex-two-col .half-width {
+    flex-basis: 50%;
+}
+.approval-row.flex-two-col .flex-item .approval-title-cell.half-width {
+    border-right: 1px solid #ddd;
+}
+.approval-row.flex-two-col .flex-item:last-child .approval-title-cell.half-width {
+    border-left: none;
+}
+.approval-row.flex-two-col .flex-item:last-child .approval-data-cell.half-width {
+    border-right: none;
+}
+.approval-row .textL input[type="checkbox"] {
+    margin-right: 3px;
+    margin-left: 10px;
+}
+</style>
+
+<div id="customWorkingHomeContent" class="com_ta puddSetup approval-view-container">
+    <div class="approval-row">
+        <div class="approval-title-cell">주요업무<font color="red">*</font><p>(사무분장업무)</p></div>
+        <div class="approval-data-cell data-colspan-3 textL">중계 서버 / 생성형 AI / 폰트폰트 개발</div>
+    </div>
+    <div class="approval-row">
+        <div class="approval-title-cell">재택근무 유형<span class="required-star">*</span></div>
+        <div class="approval-data-cell data-colspan-3 textL">${workType}</div>
+    </div>
+    <div class="approval-row">
+        <div class="approval-title-cell">근무기간<span class="required-star">*</span></div>
+        <div class="approval-data-cell data-colspan-3 textL">${startDate} ~ ${endDate}</div>
+    </div>
+    <div class="approval-row">
+        <div class="approval-title-cell">사무실 근무 요일<span class="required-star">*</span></div>
+        <div class="approval-data-cell data-colspan-3 textL">${workdaysHtml}</div>
+    </div>
+    <div class="approval-row">
+        <div class="approval-title-cell">근무지 주소</div>
+        <div class="approval-data-cell data-colspan-3 textL">${workAddress}</div>
+    </div>
+    <div class="approval-row">
+        <div class="approval-title-cell">근무지 장소</div>
+        <div class="approval-data-cell data-colspan-3 textL">자택</div>
+    </div>
+    <div class="approval-row flex-two-col">
+        <div class="flex-item">
+            <div class="approval-title-cell half-width">근무지 유선</div>
+            <div class="approval-data-cell half-width textL">010-9624-8524</div>
+        </div>
+        <div class="flex-item">
+            <div class="approval-title-cell half-width no-left-border">근무지 휴대전화</div>
+            <div class="approval-data-cell half-width textL">010-9624-8524</div>
+        </div>
+    </div>
+    <div class="approval-row last-row">
+        <div class="approval-title-cell">신청 사유</div>
+        <div class="approval-data-cell data-colspan-3 textL">재택근무</div>
+    </div>
+</div>
+`;
+
+        // 1. 화면에 미리보기 형태로 출력
+        const contentForPreview = finalOutput.substring(finalOutput.indexOf('</style>') + 8);
+        document.getElementById('generatedContent').innerHTML = contentForPreview;
+
+        // 2. 복사용 텍스트 영역에 <style>을 포함한 전체 코드 출력
+        document.getElementById('htmlCodeOutput').value = finalOutput.replace(/\s+/g, ' ').trim();
+    }
+
+    // 페이지 로드 시 기본값으로 한 번 생성
+    document.addEventListener('DOMContentLoaded', generateApprovalContent);
+</script>
+</body>
+</html>

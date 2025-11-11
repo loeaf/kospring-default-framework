@@ -41,7 +41,8 @@ class RentalRightsService(
             rentalAmount = BigDecimal("100000000"), // 1억원 고정
             status = RentalRightsStatus.ACTIVE,
             autoRenewal = false,
-            renewalNoticeSent = false
+            renewalNoticeSent = false,
+            pricingPreference = request.pricingPreference
         )
 
         val savedRentalRights = rentalRightsRepository.save(rentalRights)
@@ -53,7 +54,6 @@ class RentalRightsService(
                 memberId = member.id!!,
                 rentalContractAgreed = true,
                 serviceContractAgreed = true,
-                marketingAgreed = false,
                 ipAddress = "system",
                 userAgent = "auto-generated"
             )
@@ -143,7 +143,6 @@ class RentalRightsService(
             memberId = existingRentalRights.member.id!!,
             rentalContractAgreed = true,
             serviceContractAgreed = true,
-            marketingAgreed = false,
             ipAddress = "system-renewal",
             userAgent = "auto-renewal"
         )

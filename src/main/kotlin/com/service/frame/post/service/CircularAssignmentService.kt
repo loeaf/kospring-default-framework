@@ -70,11 +70,13 @@ class CircularAssignmentService {
                         // solution은 Member ID -> Member ID 매핑이므로, targetAd.member.id를 사용해야 함
                         val cost = solution[author.id]?.get(targetAd.member.id) ?: BigDecimal.ZERO
                         if (cost > BigDecimal.ZERO) {
+                            // 절삭 처리로 손실 방지 (소수점 버림)
+                            val flooredCost = cost.setScale(0, RoundingMode.DOWN)
                             assignments.add(
                                 Assignment(
                                     author = author,
                                     targetAdTask = targetAd,
-                                    assignedCost = cost
+                                    assignedCost = flooredCost
                                 )
                             )
                         }
@@ -270,8 +272,11 @@ class CircularAssignmentService {
             }
         }
 
+        // 모든 금액에 절삭 처리 적용
         return solution.mapValues { (_, innerMap) ->
-            innerMap.toMap()
+            innerMap.mapValues { (_, amount) ->
+                amount.setScale(0, RoundingMode.DOWN)
+            }
         }
     }
 }

@@ -20,13 +20,13 @@ BEGIN
     WHERE at.round_id = p_round_id AND o.status = 'COMPLETED'
     GROUP BY r.order_amount;
 
-    -- 게시당 수익 계산 (발주금액 ÷ (참여자수-1))
-    revenue_per_post := round_order_amount / (participant_count - 1);
+    -- 게시당 수익 계산 (발주금액 ÷ (참여자수-1)) - 절삭 처리로 손실 방지
+    revenue_per_post := FLOOR(round_order_amount / (participant_count - 1));
 
     -- 모든 참여자에 대해 광고 할당 생성
     INSERT INTO advertisement_assignments (
         round_id, advertiser_member_id, publisher_member_id,
-        ai_advertisement_id, revㄹenue_per_post
+        ai_advertisement_id, revenue_per_post
     )
     SELECT
         p_round_id,

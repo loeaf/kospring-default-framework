@@ -303,7 +303,7 @@ class AdTaskService(
                 ),
                 tags = listOfNotNull(task.adType, round.category ?: "general"),
                 htmlPath = task.webUrl ?: "",
-                previewHeight = "320px",
+                previewHeight = "600px",
                 category = round.category ?: "general",
                 status = when (task.status) {
                     AdTaskStatus.PENDING -> "대기중"
@@ -376,7 +376,7 @@ class AdTaskService(
                 ),
                 tags = listOfNotNull(task.adType, round.category ?: "general"),
                 htmlPath = task.webUrl ?: "",
-                previewHeight = "320px",
+                previewHeight = "600px",
                 category = round.category ?: "general",
                 status = when (task.status) {
                     AdTaskStatus.PENDING -> "대기중"
@@ -400,5 +400,100 @@ class AdTaskService(
             featured = adPreviewItems,
             statistics = statistics
         )
+    }
+
+    /**
+     * 기존 라운드에서 광고를 만들지 않은 신규 회원들을 위한 광고 생성
+     */
+    @Transactional
+    fun createMissingAdsForNewMembers(roundId: Long): List<Pair<com.service.frame.member.entity.Member, List<AdTask>>> {
+        val round = roundRepository.findById(roundId).orElse(null)
+            ?: throw IllegalArgumentException("Round not found with id: $roundId")
+
+        // 해당 라운드에서 이미 광고를 만든 회원들 조회
+        val existingTasks = adTaskRepository.findByRound(round)
+        val existingMemberIds = existingTasks.map { it.member.id }.toSet()
+        val currentParticipants = existingMemberIds.size
+
+        // 최대 참여자 수 제한 확인 - 이미 꽉 찬 경우 처리하지 않음
+        val maxParticipants = round.maxParticipants
+        if (maxParticipants != null && currentParticipants >= maxParticipants) {
+            logger.info("Round $roundId has reached maximum participants ($currentParticipants/$maxParticipants) - no processing needed")
+            return emptyList()
+        }
+
+        // 유효한 임대권을 가진 모든 활성 회원 조회
+        val allActiveMembers = memberRepository.findActiveMembers()
+
+        // 3개 광고를 모두 만들지 않은 회원들 필터링 (ad_index 기준)
+        val newMembers = allActiveMembers.filter { member ->
+            val memberTasks = existingTasks.filter { it.member.id == member.id }
+            val existingIndexes = memberTasks.mapNotNull { it.adIndex }.toSet()
+            val requiredIndexes = setOf(1, 2, 3)
+            
+            // 필요한 인덱스가 모두 없는 경우에만 신규 회원으로 간주
+            !requiredIndexes.all { existingIndexes.contains(it) }
+        }
+
+        if (newMembers.isEmpty()) {
+            logger.info("No new members found for round $roundId - all active members already have ads")
+            return emptyList()
+        }
+
+        val now = LocalDateTime.now()
+        val result = mutableListOf<Pair<com.service.frame.member.entity.Member, List<AdTask>>>()
+
+        newMembers.forEach { member ->
+            val memberAdTasks = mutableListOf<AdTask>()
+            
+            // 해당 회원의 기존 광고 인덱스 확인
+            val memberTasks = existingTasks.filter { it.member.id == member.id }
+            val existingIndexes = memberTasks.mapNotNull { it.adIndex }.toSet()
+            
+            // 1, 2, 3 인덱스별로 확인하여 누락된 것만 생성
+            for (adIndex in 1..3) {
+                // 이미 존재하는 인덱스는 건너뛰기
+                if (existingIndexes.contains(adIndex)) {
+                    logger.info("AdTask already exists for round $roundId, member ${member.id}, index $adIndex - skipping")
+                    continue
+                }
+                
+                val timestamp = System.currentTimeMillis() / 1000
+                val filename = "member_${member.id}_index${adIndex}_${timestamp}.html"
+                val htmlFilePath = "generated_ads/round_${roundId}/${filename}"
+                val webUrl = "/round_${roundId}/${filename}"
+                
+                try {
+                    val adTask = AdTask(
+                        round = round,
+                        member = member,
+                        status = AdTaskStatus.PENDING,
+                        adContent = "신규 회원을 위한 자동 생성된 광고 - Index $adIndex",
+                        htmlFilePath = htmlFilePath,
+                        webUrl = webUrl,
+                        adType = "auto_generated", // 타입은 자동 생성으로 통일
+                        adIndex = adIndex,
+                        createdAt = now,
+                        updatedAt = now,
+                        startedAt = null,
+                        completedAt = null
+                    )
+                    
+                    val savedAdTask = adTaskRepository.save(adTask)
+                    memberAdTasks.add(savedAdTask)
+                    
+                    logger.info("Created missing AdTask for round $roundId, member ${member.id} (${member.companyName}), index $adIndex")
+                } catch (e: Exception) {
+                    logger.warn("Failed to create AdTask for round $roundId, member ${member.id}, index $adIndex - likely duplicate: ${e.message}")
+                }
+            }
+            
+            if (memberAdTasks.isNotEmpty()) {
+                result.add(Pair(member, memberAdTasks))
+            }
+        }
+
+        logger.info("Created ${result.sumOf { it.second.size }} missing AdTasks for ${newMembers.size} new members in round $roundId")
+        return result
     }
 }

@@ -7,7 +7,6 @@ data class ContractResponse(
     val memberId: Long,
     val rentalContractAgreed: Boolean,
     val serviceContractAgreed: Boolean,
-    val marketingAgreed: Boolean,
     val contractDate: LocalDateTime,
     val contractVersion: String,
     val isActive: Boolean,

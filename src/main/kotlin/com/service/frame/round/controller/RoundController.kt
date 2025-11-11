@@ -42,6 +42,23 @@ class RoundController(
         return ResponseEntity.ok(response)
     }
 
+    @GetMapping("/{id}/status")
+    fun getRoundStatus(@PathVariable id: Long): ResponseEntity<Map<String, Any>> {
+        val round = roundService.getRoundById(id)
+        val status = mapOf(
+            "roundId" to id,
+            "status" to round.status.name,
+            "isReady" to (round.status.name == "ACTIVE"),
+            "message" to when (round.status.name) {
+                "PREPARING" -> "라운드가 준비 중입니다. 잠시 후 활성화됩니다."
+                "ACTIVE" -> "라운드가 활성화되었습니다."
+                "CLOSED" -> "라운드가 종료되었습니다."
+                else -> "알 수 없는 상태입니다."
+            }
+        )
+        return ResponseEntity.ok(status)
+    }
+
     @GetMapping("/member/{memberId}")
     fun getRoundsByCreatedBy(
         @PathVariable memberId: Long,

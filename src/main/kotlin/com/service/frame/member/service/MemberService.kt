@@ -176,8 +176,8 @@ class MemberService(
                 productDescription = request.productDescription,
                 companyDescription = request.companyDescription,
                 businessRegistrationFile = request.businessRegistrationFile!!,
-                telecommunicationSalesFile = request.telecommunicationSalesFile!!,
-                advertisingRegistrationFile = request.advertisingRegistrationFile!!
+                telecommunicationSalesFile = request.telecommunicationSalesFile ?: request.businessRegistrationFile!!,
+                advertisingRegistrationFile = request.advertisingRegistrationFile ?: request.businessRegistrationFile!!
             )
             
             val memberResponse = registerMember(memberRequest)
@@ -188,7 +188,6 @@ class MemberService(
                 memberId = memberId,
                 rentalContractAgreed = request.rentalContractAgreed,
                 serviceContractAgreed = request.serviceContractAgreed,
-                marketingAgreed = request.marketingAgreed,
                 ipAddress = request.ipAddress,
                 userAgent = request.userAgent
             )
@@ -198,7 +197,8 @@ class MemberService(
             // 3. 임대권 구매
             val rentalRequest = RentalRightsRequest(
                 memberId = memberId,
-                durationYears = request.durationYears
+                durationYears = request.durationYears,
+                pricingPreference = request.pricingPreference
             )
             
             val rentalResponse = rentalRightsService.purchaseRentalRights(rentalRequest)

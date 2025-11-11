@@ -130,15 +130,16 @@ class MemberController(
         @RequestParam companyName: String,
         @RequestParam businessRegistrationNumber: String,
         @RequestParam contactNumber: String,
-        @RequestParam businessField: String,
-        @RequestParam productDescription: String,
-        @RequestParam companyDescription: String,
+        @RequestParam(defaultValue = "") businessField: String,
+        @RequestParam(defaultValue = "") productDescription: String,
+        @RequestParam(defaultValue = "") companyDescription: String,
         @RequestParam businessRegistrationFile: MultipartFile,
-        @RequestParam telecommunicationSalesFile: MultipartFile,
-        @RequestParam advertisingRegistrationFile: MultipartFile,
+        @RequestParam(required = false) telecommunicationSalesFile: MultipartFile?,
+        @RequestParam(required = false) advertisingRegistrationFile: MultipartFile?,
         @RequestParam rentalContractAgreed: Boolean,
         @RequestParam serviceContractAgreed: Boolean,
-        @RequestParam marketingAgreed: Boolean,
+        @RequestParam(defaultValue = "false") marketingAgreed: Boolean,
+        @RequestParam(defaultValue = "") pricingPreference: String,
         @RequestParam(defaultValue = "1") durationYears: Int
     ): ResponseEntity<CompleteRegistrationResponse> {
         return try {
@@ -157,6 +158,7 @@ class MemberController(
                 rentalContractAgreed = rentalContractAgreed,
                 serviceContractAgreed = serviceContractAgreed,
                 marketingAgreed = marketingAgreed,
+                pricingPreference = pricingPreference,
                 durationYears = durationYears
             )
 

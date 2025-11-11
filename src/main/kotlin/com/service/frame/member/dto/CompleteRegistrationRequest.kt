@@ -21,6 +21,9 @@ data class CompleteRegistrationRequest(
     val serviceContractAgreed: Boolean = false,
     val marketingAgreed: Boolean = false,
     
+    // 게시비 단가 선택 정보
+    val pricingPreference: String = "", // highest, lowest, undecided
+    
     // 임대권 정보
     val durationYears: Int = 1,
     

@@ -6,7 +6,9 @@ import java.time.LocalDateTime
 import javax.persistence.*
 
 @Entity
-@Table(name = "ad_tasks")
+@Table(name = "ad_tasks", 
+    uniqueConstraints = [UniqueConstraint(columnNames = ["round_id", "member_id", "ad_index"])]
+)
 data class AdTask(
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

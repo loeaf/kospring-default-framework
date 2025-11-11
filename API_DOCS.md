@@ -357,12 +357,18 @@ http://localhost:8080/api/members/email/verify?token=expired_token
 | companyName | String | Y | 회사명 |
 | businessRegistrationNumber | String | Y | 사업자등록번호 |
 | contactNumber | String | Y | 연락처 |
+| businessField | String | N | 사업분야 (기본값: "") |
+| productDescription | String | N | 제품/서비스 설명 (기본값: "") |
+| companyDescription | String | N | 회사 설명 (기본값: "") |
+| hasTelecomBusiness | Boolean | N | 통신판매업 등록 여부 |
+| hasAdvertisingBusiness | Boolean | N | 광고업 등록 여부 |
 | businessRegistrationFile | File | Y | 사업자등록증 파일 |
-| telecommunicationSalesFile | File | Y | 통신판매업신고증 파일 |
-| advertisingRegistrationFile | File | Y | 광고업등록증 파일 |
+| telecommunicationSalesFile | File | N | 통신판매업신고증 파일 (선택) |
+| advertisingRegistrationFile | File | N | 광고업등록증 파일 (선택) |
 | rentalContractAgreed | Boolean | Y | 임대권 구매 계약 동의 |
 | serviceContractAgreed | Boolean | Y | 광고 게시 용역 계약 동의 |
-| marketingAgreed | Boolean | Y | 마케팅 정보 수신 동의 |
+| marketingAgreed | Boolean | N | 마케팅 정보 수신 동의 (기본값: false) |
+| pricingPreference | String | N | 게시비 단가 선택 (highest/lowest/undecided, 기본값: "") |
 | durationYears | Integer | N | 임대권 기간(년) (기본값: 1년) |
 
 #### Response
@@ -418,12 +424,17 @@ curl -X POST http://localhost:8080/api/members/complete-registration \
   -F "companyName=테스트 회사" \
   -F "businessRegistrationNumber=123-45-67890" \
   -F "contactNumber=010-1234-5678" \
+  -F "businessField=IT 소프트웨어" \
+  -F "productDescription=클라우드 기반 솔루션 개발" \
+  -F "companyDescription=혁신적인 IT 솔루션 제공 기업" \
+  -F "hasTelecomBusiness=true" \
+  -F "hasAdvertisingBusiness=false" \
   -F "businessRegistrationFile=@./business_registration.pdf" \
   -F "telecommunicationSalesFile=@./telecom_sales.pdf" \
-  -F "advertisingRegistrationFile=@./advertising_registration.pdf" \
   -F "rentalContractAgreed=true" \
   -F "serviceContractAgreed=true" \
   -F "marketingAgreed=false" \
+  -F "pricingPreference=highest" \
   -F "durationYears=1"
 ```
 
@@ -714,7 +725,8 @@ curl -X POST http://localhost:8080/api/contracts/create \
 {
   "memberId": 1,
   "purchaseDate": "2024-01-01",
-  "durationYears": 1
+  "durationYears": 1,
+  "pricingPreference": "highest"
 }
 ```
 
@@ -723,6 +735,7 @@ curl -X POST http://localhost:8080/api/contracts/create \
 | memberId | Long | Y | 회원 ID |
 | purchaseDate | LocalDate | N | 구매일 (기본값: 오늘) |
 | durationYears | Integer | N | 기간(년) (기본값: 1년) |
+| pricingPreference | String | N | 게시비 단가 선택 (highest/lowest/undecided, 기본값: "") |
 
 #### Response
 **Success (200 OK)**
@@ -748,7 +761,8 @@ curl -X POST http://localhost:8080/api/rental-rights/purchase \
   -d '{
     "memberId": 1,
     "purchaseDate": "2024-01-01",
-    "durationYears": 1
+    "durationYears": 1,
+    "pricingPreference": "highest"
   }'
 ```
 

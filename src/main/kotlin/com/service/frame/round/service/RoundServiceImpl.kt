@@ -52,6 +52,7 @@ class RoundServiceImpl(
             postStartDate = postStartDate,
             postEndDate = postEndDate,
             postDurationDays = postDurationDays,
+            status = RoundStatus.PREPARING,
             maxParticipants = request.maxParticipants,
             createdBy = creator
         )
@@ -86,7 +87,8 @@ class RoundServiceImpl(
         val rounds = if (status != null) {
             roundRepository.findActiveRoundsOrderByCreatedAtDesc(status, pageable)
         } else {
-            roundRepository.findAll(pageable)
+            // 기본적으로 ACTIVE 상태 라운드만 조회
+            roundRepository.findActiveRoundsOrderByCreatedAtDesc(RoundStatus.ACTIVE, pageable)
         }
         
         return rounds.map { round ->

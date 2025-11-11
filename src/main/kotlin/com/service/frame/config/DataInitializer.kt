@@ -41,8 +41,12 @@ class DataInitializer(
             companyName = "도시와농촌",
             businessRegistrationNumber = "123-45-67890",
             contactNumber = "044-417-6661",
+            businessField = "광고대행업",
+            productDescription = "광고 플랫폼 서비스",
+            companyDescription = "온라인 광고 플랫폼을 운영하는 회사입니다.",
             businessRegistrationFile = "/uploads/admin_business.pdf",
             telecommunicationSalesFile = "/uploads/admin_telecom.pdf",
+            advertisingRegistrationFile = "/uploads/admin_advertising.pdf",
             isPremium = true
         )
         

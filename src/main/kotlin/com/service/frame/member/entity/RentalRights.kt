@@ -39,6 +39,9 @@ data class RentalRights(
     @Column(name = "renewal_notice_sent", nullable = false)
     val renewalNoticeSent: Boolean = false,
 
+    @Column(name = "pricing_preference", nullable = true, length = 20)
+    val pricingPreference: String? = null, // highest, lowest, undecided
+
     @CreatedDate
     @Column(name = "created_at", nullable = false, updatable = false)
     var createdAt: LocalDateTime? = null,
@@ -49,7 +52,7 @@ data class RentalRights(
 ) {
     constructor() : this(
         null, Member(), LocalDate.now(), LocalDate.now().plusYears(1), 
-        BigDecimal("100000000"), RentalRightsStatus.ACTIVE, false, false, null, null
+        BigDecimal("100000000"), RentalRightsStatus.ACTIVE, false, false, null, null, null
     )
 }
 

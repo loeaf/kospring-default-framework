@@ -13,7 +13,7 @@ data class AdPreviewItem(
     val publisher: MultiLanguageText,
     val tags: List<String>,
     val htmlPath: String,
-    val previewHeight: String = "320px",
+    val previewHeight: String = "600px",
     val category: String,
     val status: String
 )

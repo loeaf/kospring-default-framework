@@ -37,12 +37,13 @@ curl -v -X POST http://localhost:8080/api/members/complete-registration \
   -F "businessField=IT 기술혁신" \
   -F "productDescription=혁신적인 IT 솔루션 및 기술 컨설팅" \
   -F "companyDescription=최신 기술로 혁신을 주도하는 IT 전문기업" \
-  -F "businessRegistrationFile=@business_registration.pdf" \
-  -F "telecommunicationSalesFile=@telecom_sales.pdf" \
-  -F "advertisingRegistrationFile=@advertising_registration.pdf" \
+  -F "businessRegistrationFile=@/Users/doheyonkim/Depot/kospring-default-framework/sh/business_registration.pdf" \
+  -F "telecommunicationSalesFile=@/Users/doheyonkim/Depot/kospring-default-framework/sh/telecom_sales.pdf" \
+  -F "advertisingRegistrationFile=@/Users/doheyonkim/Depot/kospring-default-framework/sh/advertising_registration.pdf" \
   -F "rentalContractAgreed=true" \
   -F "serviceContractAgreed=true" \
-  -F "marketingAgreed=true" \
+  -F "marketingAgreed=false" \
+  -F "pricingPreference=highest" \
   -F "durationYears=1"
 
 echo -e "\n"
@@ -58,12 +59,13 @@ curl -X POST http://localhost:8080/api/members/complete-registration \
   -F "businessField=크리에이티브 디자인" \
   -F "productDescription=브랜딩, 웹디자인, 광고 크리에이티브 제작" \
   -F "companyDescription=창의적인 디자인으로 브랜드 가치를 높이는 스튜디오" \
-  -F "businessRegistrationFile=@./business_registration.pdf" \
-  -F "telecommunicationSalesFile=@./telecom_sales.pdf" \
-  -F "advertisingRegistrationFile=@./advertising_registration.pdf" \
+  -F "businessRegistrationFile=@/Users/doheyonkim/Depot/kospring-default-framework/sh/business_registration.pdf" \
+  -F "telecommunicationSalesFile=@/Users/doheyonkim/Depot/kospring-default-framework/sh/telecom_sales.pdf" \
+  -F "advertisingRegistrationFile=@/Users/doheyonkim/Depot/kospring-default-framework/sh/advertising_registration.pdf" \
   -F "rentalContractAgreed=true" \
   -F "serviceContractAgreed=true" \
   -F "marketingAgreed=false" \
+  -F "pricingPreference=lowest" \
   -F "durationYears=1"
 
 echo -e "\n"
@@ -79,12 +81,13 @@ curl -X POST http://localhost:8080/api/members/complete-registration \
   -F "businessField=디지털 마케팅" \
   -F "productDescription=온라인 마케팅, SNS 관리, 퍼포먼스 마케팅" \
   -F "companyDescription=데이터 기반 디지털 마케팅 전문 에이전시" \
-  -F "businessRegistrationFile=@./business_registration.pdf" \
-  -F "telecommunicationSalesFile=@./telecom_sales.pdf" \
-  -F "advertisingRegistrationFile=@./advertising_registration.pdf" \
+  -F "businessRegistrationFile=@/Users/doheyonkim/Depot/kospring-default-framework/sh/business_registration.pdf" \
+  -F "telecommunicationSalesFile=@/Users/doheyonkim/Depot/kospring-default-framework/sh/telecom_sales.pdf" \
+  -F "advertisingRegistrationFile=@/Users/doheyonkim/Depot/kospring-default-framework/sh/advertising_registration.pdf" \
   -F "rentalContractAgreed=true" \
   -F "serviceContractAgreed=true" \
   -F "marketingAgreed=true" \
+  -F "pricingPreference=undecided" \
   -F "durationYears=2"
 
 echo -e "\n"
@@ -100,12 +103,13 @@ curl -X POST http://localhost:8080/api/members/complete-registration \
   -F "businessField=스마트 기술" \
   -F "productDescription=IoT, 스마트홈, 자동화 솔루션 개발" \
   -F "companyDescription=스마트 기술로 편리한 생활을 만드는 기업" \
-  -F "businessRegistrationFile=@./business_registration.pdf" \
-  -F "telecommunicationSalesFile=@./telecom_sales.pdf" \
-  -F "advertisingRegistrationFile=@./advertising_registration.pdf" \
+  -F "businessRegistrationFile=@/Users/doheyonkim/Depot/kospring-default-framework/sh/business_registration.pdf" \
+  -F "telecommunicationSalesFile=@/Users/doheyonkim/Depot/kospring-default-framework/sh/telecom_sales.pdf" \
+  -F "advertisingRegistrationFile=@/Users/doheyonkim/Depot/kospring-default-framework/sh/advertising_registration.pdf" \
   -F "rentalContractAgreed=true" \
   -F "serviceContractAgreed=true" \
   -F "marketingAgreed=false" \
+  -F "pricingPreference=highest" \
   -F "durationYears=1"
 
 echo -e "\n"
@@ -121,12 +125,13 @@ curl -X POST http://localhost:8080/api/members/complete-registration \
   -F "businessField=소프트웨어 개발" \
   -F "productDescription=AI 기반 솔루션 개발 및 제공" \
   -F "companyDescription=미래 기술을 선도하는 혁신 기업" \
-  -F "businessRegistrationFile=@./business_registration.pdf" \
-  -F "telecommunicationSalesFile=@./telecom_sales.pdf" \
-  -F "advertisingRegistrationFile=@./advertising_registration.pdf" \
+  -F "businessRegistrationFile=@/Users/doheyonkim/Depot/kospring-default-framework/sh/business_registration.pdf" \
+  -F "telecommunicationSalesFile=@/Users/doheyonkim/Depot/kospring-default-framework/sh/telecom_sales.pdf" \
+  -F "advertisingRegistrationFile=@/Users/doheyonkim/Depot/kospring-default-framework/sh/advertising_registration.pdf" \
   -F "rentalContractAgreed=true" \
   -F "serviceContractAgreed=true" \
   -F "marketingAgreed=true" \
+  -F "pricingPreference=lowest" \
   -F "durationYears=3"
 
 echo -e "\n"
@@ -139,12 +144,12 @@ echo "Creating member 6: 테스트주식회사..."
 #  -F "companyName=테스트주식회사" \
 #  -F "businessRegistrationNumber=123-45-67890" \
 #  -F "contactNumber=02-1234-5678" \
-#  -F "businessRegistrationFile=@./business_registration.pdf" \
-#  -F "telecommunicationSalesFile=@./telecom_sales.pdf" \
-#  -F "advertisingRegistrationFile=@./advertising_registration.pdf" \
+#  -F "businessRegistrationFile=@/Users/doheyonkim/Depot/kospring-default-framework/sh/business_registration.pdf" \
+#  -F "telecommunicationSalesFile=@/Users/doheyonkim/Depot/kospring-default-framework/sh/telecom_sales.pdf" \
+#  -F "advertisingRegistrationFile=@/Users/doheyonkim/Depot/kospring-default-framework/sh/advertising_registration.pdf" \
 #  -F "rentalContractAgreed=true" \
 #  -F "serviceContractAgreed=true" \
-#  -F "marketingAgreed=true" \
+# \
 #  -F "durationYears=1"
 
 echo -e "\n"

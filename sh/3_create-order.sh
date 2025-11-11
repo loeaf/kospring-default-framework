@@ -2,7 +2,7 @@
 #!/bin/bash
 # ad_task 정보를 order로 옮김 (이체)
 echo "=== 새로운 테스트 방식 - 라운드 ID로 자동 선택 ==="
-curl -X POST "http://localhost:8080/api/orders/test/round/2" \
+curl -X POST "http://localhost:8080/api/orders/test/round/1" \
   -H "Content-Type: application/json" \
   -d '{
     "productName": "마케팅 광고 서비스",
@@ -15,7 +15,7 @@ echo -e "\n\n"
 
 # order의 정보를
 echo "=== 새로운 테스트 방식 - 라운드 ID로 자동 결제 생성 ==="
-curl -X POST "http://localhost:8080/api/orders/test/payments/round/2" \
+curl -X POST "http://localhost:8080/api/orders/test/payments/round/1" \
   -H "Content-Type: application/json" \
   -d '{
     "paymentAmount": 50000.00,
