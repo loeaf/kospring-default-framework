@@ -23,6 +23,9 @@ interface RoundRepository : JpaRepository<Round, Long> {
     @Query("SELECT r FROM Round r WHERE r.createdBy.id = :memberId ORDER BY r.createdAt DESC")
     fun findByCreatedByIdOrderByCreatedAtDesc(memberId: Long, pageable: Pageable): Page<Round>
     
+    @Query("SELECT r FROM Round r ORDER BY r.createdAt DESC")
+    fun findAllByOrderByCreatedAtDesc(pageable: Pageable): Page<Round>
+    
     @Query("SELECT r FROM Round r WHERE r.status = 'ACTIVE' AND r.endDate <= :currentTime")
     fun findExpiredActiveRounds(currentTime: LocalDateTime): List<Round>
     

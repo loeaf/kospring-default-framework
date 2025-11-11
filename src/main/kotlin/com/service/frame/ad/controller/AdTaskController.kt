@@ -57,6 +57,29 @@ class AdTaskController(
     }
 
     /**
+     * 특정 회원의 특정 광고 작업 조회
+     */
+    @GetMapping("/members/{memberId}/tasks/{adTaskId}")
+    fun getMemberAdTask(
+        @PathVariable memberId: Long,
+        @PathVariable adTaskId: Long
+    ): ResponseEntity<Any> {
+        return try {
+            val result = adTaskService.getMemberAdTask(memberId, adTaskId)
+            ResponseEntity.ok(result)
+        } catch (e: IllegalArgumentException) {
+            when {
+                e.message?.contains("not found") == true -> 
+                    ResponseEntity.notFound().build()
+                e.message?.contains("does not belong") == true -> 
+                    ResponseEntity.status(403).body(mapOf("error" to "Access denied: ${e.message}"))
+                else -> 
+                    ResponseEntity.badRequest().body(mapOf("error" to e.message))
+            }
+        }
+    }
+
+    /**
      * 특정 회원의 광고 미리보기 데이터 조회
      */
     @GetMapping("/members/{memberId}/previews")

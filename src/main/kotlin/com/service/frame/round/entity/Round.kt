@@ -102,5 +102,7 @@ data class Round(
 
 
 enum class RoundStatus {
-    PREPARING, ACTIVE, CLOSED, PENDING
+    PREPARING,    // 준비중 -> 라운드는 생성되었으나 광고가 제작되지 않은 단계
+    ACTIVE,       // 광고 판매중 -> 라운드는 생성되었고 광고역시 제작된 단계
+    CLOSED        // 완료
 }

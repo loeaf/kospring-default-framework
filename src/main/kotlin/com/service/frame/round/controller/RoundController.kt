@@ -67,4 +67,19 @@ class RoundController(
         val response = roundService.getRoundsByCreatedBy(memberId, pageable)
         return ResponseEntity.ok(response)
     }
+
+    @GetMapping("/{id}/posted-ads")
+    fun getPostedAdsForMemberInRound(
+        @PathVariable id: Long,
+        @RequestParam memberId: Long
+    ): ResponseEntity<List<Map<String, Any>>> {
+        val response = roundService.getPostedAdsForMemberInRound(id, memberId)
+        return ResponseEntity.ok(response)
+    }
+
+    @GetMapping("/download/ad-file")
+    fun downloadAdFile(@RequestParam filePath: String): ResponseEntity<Any> {
+        val response = roundService.downloadAdFile(filePath)
+        return response
+    }
 }

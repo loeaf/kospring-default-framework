@@ -137,6 +137,31 @@ class AdTaskService(
         }
     }
 
+    fun getMemberAdTask(memberId: Long, adTaskId: Long): AdTaskResponse {
+        val task = adTaskRepository.findById(adTaskId).orElse(null)
+            ?: throw IllegalArgumentException("AdTask not found with id: $adTaskId")
+        
+        if (task.member.id != memberId) {
+            throw IllegalArgumentException("AdTask $adTaskId does not belong to member $memberId")
+        }
+
+        return AdTaskResponse(
+            id = task.id!!,
+            roundId = task.round.id!!,
+            roundTitle = task.round.title,
+            memberId = task.member.id!!,
+            memberCompanyName = task.member.companyName ?: "",
+            memberEmail = task.member.email,
+            status = task.status,
+            createdAt = task.createdAt,
+            updatedAt = task.updatedAt,
+            completedAt = task.completedAt,
+            errorMessage = task.errorMessage,
+            retryCount = task.retryCount,
+            webUrl = task.webUrl
+        )
+    }
+
     fun getMemberAdInRound(roundId: Long, memberId: Long): RoundWithAdsResponse {
         val round = roundRepository.findById(roundId).orElse(null)
             ?: throw IllegalArgumentException("Round not found with id: $roundId")
