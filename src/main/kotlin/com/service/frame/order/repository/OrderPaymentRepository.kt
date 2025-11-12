@@ -28,4 +28,29 @@ interface OrderPaymentRepository : JpaRepository<OrderPayment, Long> {
     
     @Query("SELECT COUNT(op) FROM OrderPayment op WHERE DATE(op.createdAt) = CURRENT_DATE")
     fun countTodayPayments(): Long
+    
+    @Query("""
+        SELECT op 
+        FROM OrderPayment op
+        JOIN op.order o
+        JOIN o.adTask at
+        WHERE at.round.id = :roundId
+        AND op.paymentStatus = 'WAITING'
+    """)
+    fun findPaymentsToConfirmByRound(@Param("roundId") roundId: Long): List<OrderPayment>
+
+    @Query("""
+        SELECT op 
+        FROM OrderPayment op
+        JOIN op.order o
+        JOIN o.adTask at
+        JOIN at.member m
+        WHERE at.round.id = :roundId
+        AND m.id = :memberId
+        AND op.paymentStatus = 'WAITING'
+    """)
+    fun findPaymentsToConfirmByRoundAndMember(
+        @Param("roundId") roundId: Long, 
+        @Param("memberId") memberId: Long
+    ): List<OrderPayment>
 }

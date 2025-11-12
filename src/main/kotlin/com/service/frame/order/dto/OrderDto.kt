@@ -2,6 +2,7 @@ package com.service.frame.order.dto
 
 import com.service.frame.order.entity.OrderStatus
 import com.service.frame.order.entity.PaymentStatus
+import com.service.frame.round.entity.RoundStatus
 import java.math.BigDecimal
 import java.time.LocalDate
 import java.time.LocalDateTime
@@ -41,7 +42,8 @@ data class OrderResponse(
     val createdAt: LocalDateTime,
     val updatedAt: LocalDateTime,
     val paymentInfo: OrderPaymentInfo?,
-    val roundParticipants: RoundParticipantsInfo?
+    val roundParticipants: RoundParticipantsInfo?,
+    val roundInfo: RoundInfo?
 )
 
 // 주문 결제 정보
@@ -323,4 +325,22 @@ data class OrderReceiptSummary(
     val paymentStatus: PaymentStatus,
     val issueDate: LocalDateTime,
     val orderDate: LocalDateTime
+)
+
+// 라운드 정보
+data class RoundInfo(
+    val id: Long,
+    val title: String?,
+    val description: String?,
+    val category: String?,
+    val orderAmount: BigDecimal,
+    val status: RoundStatus,
+    val startDate: LocalDate?,
+    val endDate: LocalDate?,
+    val postStartDate: LocalDate?,
+    val postEndDate: LocalDate?,
+    val postDurationDays: Int?,
+    val maxParticipants: Int?,
+    val currentParticipants: Int,
+    val roundNumber: String?
 )

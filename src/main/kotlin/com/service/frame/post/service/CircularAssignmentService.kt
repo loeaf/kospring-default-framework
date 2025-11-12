@@ -131,6 +131,7 @@ class CircularAssignmentService {
         val amount1 = investments[person1] ?: BigDecimal.ZERO
         val amount2 = investments[person2] ?: BigDecimal.ZERO
 
+        // 2명일 때: 각자 상대방에게 본인 투자금액 전액 배정
         return mapOf(
             person1.id!! to mapOf(person2.id!! to amount1),
             person2.id!! to mapOf(person1.id!! to amount2)
@@ -151,36 +152,16 @@ class CircularAssignmentService {
         val b = investments[B] ?: BigDecimal.ZERO
         val c = investments[C] ?: BigDecimal.ZERO
 
-        // 3명 시스템의 정확한 해
-        // Python 코드의 solve_3_person_system 로직 구현
-        // x_AB = 0, x_AC = a
-        // x_BA = 0, x_BC = b
-        // x_CA = a, x_CB = b
+        // 3명일 때: 각자 나머지 2명에게 본인 투자금액의 1/2씩 배정
+        val halfA = a.divide(BigDecimal("2"), 0, RoundingMode.DOWN)
+        val halfB = b.divide(BigDecimal("2"), 0, RoundingMode.DOWN)
+        val halfC = c.divide(BigDecimal("2"), 0, RoundingMode.DOWN)
         
-        val xAB = BigDecimal.ZERO
-        val xAC = a
-        val xBA = BigDecimal.ZERO
-        val xBC = b
-        val xCA = a
-        val xCB = b
-
-        // 제약조건 확인
-        val constraint1 = (xAB + xAC == a) // A가 받는 총액
-        val constraint2 = (xBA + xBC == b) // B가 받는 총액
-        val constraint3 = (xCA + xCB == c) // C가 받는 총액
-        val constraint4 = (xBA + xCA == a) // A발주 분할
-        val constraint5 = (xAB + xCB == b) // B발주 분할
-        val constraint6 = (xAC + xBC == c) // C발주 분할
-
-        if (constraint1 && constraint2 && constraint3 && constraint4 && constraint5 && constraint6) {
-            return mapOf(
-                A.id!! to mapOf(B.id!! to xAB, C.id!! to xAC),
-                B.id!! to mapOf(A.id!! to xBA, C.id!! to xBC),
-                C.id!! to mapOf(A.id!! to xCA, B.id!! to xCB)
-            )
-        }
-        
-        return null
+        return mapOf(
+            A.id!! to mapOf(B.id!! to halfA, C.id!! to halfA),
+            B.id!! to mapOf(A.id!! to halfB, C.id!! to halfB),
+            C.id!! to mapOf(A.id!! to halfC, B.id!! to halfC)
+        )
     }
 
     private fun solveIterativeSystem(

@@ -162,6 +162,19 @@ class OrderController(
     }
 
     /**
+     * 테스트용 API - 특정 라운드의 특정 멤버 결제를 승인
+     */
+    @PutMapping("/test/payments/round/{roundId}/member/{memberId}/confirm")
+    fun confirmPaymentsByRoundAndMember(
+        @PathVariable roundId: Int,
+        @PathVariable memberId: Long,
+        @RequestParam(defaultValue = "멤버별 입금 확인") notes: String
+    ): ResponseEntity<List<OrderPaymentInfo>> {
+        val result = orderService.confirmPaymentsByRoundAndMember(roundId, memberId, notes)
+        return ResponseEntity.ok(result)
+    }
+
+    /**
      * 라운드 전체 정보 조회 (AdTasks, Orders, Payments 포함)
      */
     @GetMapping("/round/{roundId}/info")

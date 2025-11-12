@@ -20,6 +20,7 @@ import org.springframework.http.MediaType
 import org.springframework.core.io.FileSystemResource
 import org.springframework.core.io.Resource
 import java.io.File
+import java.math.BigDecimal
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
 import javax.persistence.EntityManager
@@ -127,47 +128,30 @@ class RoundServiceImpl(
 
     @Transactional(readOnly = true)
     override fun getPostedAdsForMemberInRound(roundId: Long, memberId: Long): List<Map<String, Any>> {
-        val round = roundRepository.findById(roundId).orElse(null)
-            ?: throw IllegalArgumentException("Round not found with id: $roundId")
-        
-        val member = memberRepository.findById(memberId).orElse(null)
-            ?: throw IllegalArgumentException("Member not found with id: $memberId")
-
         val query = """
-            SELECT 
+            SELECT DISTINCT
                 aa.id as assignmentId,
-                aa.revenue_per_post as revenuePerPost,
-                aa.assignment_status as assignmentStatus,
-                aa.created_at as assignmentCreatedAt,
-                aa.updated_at as assignmentUpdatedAt,
                 at.id as adTaskId,
-                at.task_status as adTaskStatus,
-                at.ad_content as adContent,
-                at.web_url as webUrl,
                 at.ad_type as adType,
-                at.html_file_path as htmlFilePath,
-                at.completed_at as completedAt,
-                pm.id as publisherId,
-                pm.company_name as publisherCompanyName,
-                pm.email as publisherEmail,
-                pm.contact_number as publisherContactNumber,
-                am.id as advertiserId,
-                am.company_name as advertiserCompanyName,
-                o.id as orderId,
-                o.product_name as productName,
-                o.quantity as quantity,
-                o.status as orderStatus,
-                o.requirements as orderRequirements,
-                r.title as roundTitle
-            FROM orders o
-            JOIN ad_tasks at ON o.ad_task_id = at.id
-            JOIN advertisement_assignments aa ON aa.ad_task_id = at.id
-            JOIN members pm ON aa.publisher_member_id = pm.id
-            JOIN members am ON aa.advertiser_member_id = am.id
-            JOIN rounds r ON aa.round_id = r.id
-            WHERE aa.round_id = :roundId
-            AND at.task_status = 'COMPLETED'
-            AND o.member_id = :memberId
+                at.web_url as webUrl,
+                pm.company_name as publisherName,
+                ap.content as postContent,
+                ap.post_status as postStatus,
+                ap.published_at as publishedAt,
+                aa.created_at as createdAt
+            FROM ad_tasks at
+            INNER JOIN advertisement_assignments aa ON aa.ad_task_id = at.id
+            LEFT JOIN advertisement_posts ap ON aa.id = ap.assignment_id
+            INNER JOIN members pm ON aa.publisher_member_id = pm.id
+            WHERE at.id IN (
+                    SELECT o.ad_task_id FROM orders o
+                    INNER JOIN order_payments op ON o.id = op.order_id
+                    WHERE o.member_id = :memberId
+                        AND op.payment_status = 'CONFIRMED'
+                )
+                AND at.round_id = :roundId
+                AND at.task_status = 'COMPLETED'
+                AND aa.publisher_member_id != :memberId
             ORDER BY aa.created_at DESC
         """.trimIndent()
 
@@ -178,43 +162,17 @@ class RoundServiceImpl(
 
         return resultList.map { result ->
             val row = result as Array<Any?>
+            
             mapOf<String, Any>(
                 "assignmentId" to (row[0] ?: 0),
-                "revenuePerPost" to (row[1] ?: 0.0),
-                "assignmentStatus" to (row[2] ?: ""),
-                "assignmentCreatedAt" to (row[3] ?: ""),
-                "assignmentUpdatedAt" to (row[4] ?: ""),
-                "adTask" to mapOf<String, Any>(
-                    "id" to (row[5] ?: 0),
-                    "status" to (row[6] ?: ""),
-                    "adContent" to (row[7] ?: ""),
-                    "webUrl" to (row[8] ?: ""),
-                    "adType" to (row[9] ?: ""),
-                    "htmlFilePath" to (row[10] ?: ""),
-                    "completedAt" to (row[11] ?: ""),
-                    "posterId" to (row[16] ?: 0),
-                    "downloadUrl" to (if (row[10] != null) "/api/rounds/download/ad-file?filePath=${row[10]}" else "")
-                ),
-                "publisher" to mapOf<String, Any>(
-                    "id" to (row[12] ?: 0),
-                    "companyName" to (row[13] ?: ""),
-                    "email" to (row[14] ?: ""),
-                    "contactNumber" to (row[15] ?: "")
-                ),
-                "advertiser" to mapOf<String, Any>(
-                    "id" to (row[16] ?: 0),
-                    "companyName" to (row[17] ?: "")
-                ),
-                "order" to mapOf<String, Any>(
-                    "id" to (row[18] ?: 0),
-                    "productName" to (row[19] ?: ""),
-                    "quantity" to (row[20] ?: 0),
-                    "status" to (row[21] ?: ""),
-                    "requirements" to (row[22] ?: "")
-                ),
-                "round" to mapOf<String, Any>(
-                    "title" to (row[23] ?: "")
-                )
+                "adTaskId" to (row[1] ?: 0),
+                "adType" to (row[2] ?: ""),
+                "webUrl" to (row[3] ?: ""),
+                "publisherName" to (row[4] ?: ""),
+                "postContent" to (row[5] ?: ""),
+                "postStatus" to (row[6] ?: ""),
+                "publishedAt" to (row[7] ?: ""),
+                "createdAt" to (row[8] ?: "")
             )
         }
     }

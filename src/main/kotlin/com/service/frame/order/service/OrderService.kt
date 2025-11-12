@@ -221,6 +221,24 @@ class OrderService(
             )
         }
 
+        // Round 정보 생성
+        val roundInfo = RoundInfo(
+            id = round.id!!,
+            title = round.title,
+            description = round.description,
+            category = round.category,
+            orderAmount = round.orderAmount,
+            status = round.status,
+            startDate = round.startDate?.toLocalDate(),
+            endDate = round.endDate?.toLocalDate(),
+            postStartDate = round.postStartDate?.toLocalDate(),
+            postEndDate = round.postEndDate?.toLocalDate(),
+            postDurationDays = round.postDurationDays,
+            maxParticipants = round.maxParticipants,
+            currentParticipants = orderRepository.countByRoundId(round.id!!).toInt(),
+            roundNumber = round.roundNumber
+        )
+
         return OrderResponse(
             id = order.id!!,
             orderNumber = order.orderNumber,
@@ -246,7 +264,8 @@ class OrderService(
             createdAt = order.createdAt,
             updatedAt = order.updatedAt,
             paymentInfo = paymentInfo,
-            roundParticipants = null
+            roundParticipants = null,
+            roundInfo = roundInfo
         )
     }
 
@@ -295,6 +314,24 @@ class OrderService(
             )
         } else null
 
+        // Round 정보 생성
+        val roundInfo = RoundInfo(
+            id = round.id!!,
+            title = round.title,
+            description = round.description,
+            category = round.category,
+            orderAmount = round.orderAmount,
+            status = round.status,
+            startDate = round.startDate?.toLocalDate(),
+            endDate = round.endDate?.toLocalDate(),
+            postStartDate = round.postStartDate?.toLocalDate(),
+            postEndDate = round.postEndDate?.toLocalDate(),
+            postDurationDays = round.postDurationDays,
+            maxParticipants = round.maxParticipants,
+            currentParticipants = orderRepository.countByRoundId(round.id!!).toInt(),
+            roundNumber = round.roundNumber
+        )
+
         return OrderResponse(
             id = order.id!!,
             orderNumber = order.orderNumber,
@@ -320,7 +357,8 @@ class OrderService(
             createdAt = order.createdAt,
             updatedAt = order.updatedAt,
             paymentInfo = paymentInfo,
-            roundParticipants = roundParticipantsInfo
+            roundParticipants = roundParticipantsInfo,
+            roundInfo = roundInfo
         )
     }
 
@@ -604,62 +642,92 @@ class OrderService(
 
     @Transactional
     fun confirmAllPaymentsByRound(roundId: Int, notes: String = "라운드별 일괄 입금 확인"): List<OrderPaymentInfo> {
-        val round = roundRepository.findById(roundId.toLong()).orElse(null)
+        roundRepository.findById(roundId.toLong()).orElse(null)
             ?: throw IllegalArgumentException("Round not found with id: $roundId")
         
-        val adTasks = adTaskRepository.findByRoundAndAdIndex(round, 1)
-        if (adTasks.isEmpty()) {
-            throw IllegalArgumentException("No AdTask with ad_index=1 found for round: $roundId")
+        // 조인 쿼리로 업데이트 대상 조회
+        val paymentsToUpdate = orderPaymentRepository.findPaymentsToConfirmByRound(roundId.toLong())
+        
+        if (paymentsToUpdate.isEmpty()) {
+            throw IllegalArgumentException("No payments in WAITING status found for round: $roundId with ad_index=1")
         }
 
-        val confirmedPayments = adTasks.mapNotNull { adTask ->
-            val order = orderRepository.findByAdTaskId(adTask.id!!)
-            
-            if (order == null) {
-                println("Warning: Order not found for AdTask with id: ${adTask.id}")
-                return@mapNotNull null
-            }
-
-            val payment = orderPaymentRepository.findByOrderIdOrderByCreatedAtDesc(order.id!!)
-                .firstOrNull()
-            
-            if (payment == null) {
-                println("Warning: Payment not found for Order with id: ${order.id}")
-                return@mapNotNull null
-            }
-
-            if (payment.paymentStatus == PaymentStatus.CONFIRMED) {
-                println("Info: Payment ${payment.id} is already confirmed")
-                return@mapNotNull mapToOrderPaymentInfo(payment)
-            }
-
-            if (payment.paymentStatus != PaymentStatus.WAITING) {
-                println("Warning: Payment ${payment.id} is not in WAITING status. Current status: ${payment.paymentStatus}")
-                return@mapNotNull null
-            }
-
-            val updatedPayment = payment.copy(
+        val confirmedPayments = paymentsToUpdate.map { payment ->
+            val updatedPayment = OrderPayment(
+                id = payment.id,
+                order = payment.order,
+                applicationNumber = payment.applicationNumber,
+                paymentAmount = payment.paymentAmount,
+                depositorName = payment.depositorName,
+                bankAccountNumber = payment.bankAccountNumber,
+                bankName = payment.bankName,
                 paymentStatus = PaymentStatus.CONFIRMED,
                 notes = notes,
                 paymentConfirmedAt = LocalDateTime.now(),
+                createdAt = payment.createdAt,
                 updatedAt = LocalDateTime.now()
             )
 
             val savedPayment = orderPaymentRepository.save(updatedPayment)
-            updateOrderStatus(order.id!!, OrderStatusUpdateRequest(OrderStatus.PAYMENT_CONFIRMED))
+            
+            updateOrderStatus(payment.order.id!!, OrderStatusUpdateRequest(OrderStatus.PAYMENT_CONFIRMED))
             
             // 입금 확인 시 expense transaction 생성
             try {
-                revenueService.createExpenseTransaction(order)
+                revenueService.createExpenseTransaction(payment.order)
             } catch (e: Exception) {
-                logger.warn("Failed to create expense transaction for order ${order.id}: ${e.message}")
+                logger.warn("Failed to create expense transaction for order ${payment.order.id}: ${e.message}")
             }
             
             mapToOrderPaymentInfo(savedPayment)
         }
 
-        if (confirmedPayments.isEmpty()) {
-            throw IllegalStateException("No valid payments found to confirm for round: $roundId")
+        return confirmedPayments
+    }
+
+    @Transactional
+    fun confirmPaymentsByRoundAndMember(roundId: Int, memberId: Long, notes: String = "멤버별 입금 확인"): List<OrderPaymentInfo> {
+        roundRepository.findById(roundId.toLong()).orElse(null)
+            ?: throw IllegalArgumentException("Round not found with id: $roundId")
+        
+        memberRepository.findById(memberId).orElse(null)
+            ?: throw IllegalArgumentException("Member not found with id: $memberId")
+        
+        // 조인 쿼리로 특정 멤버의 업데이트 대상 조회
+        val paymentsToUpdate = orderPaymentRepository.findPaymentsToConfirmByRoundAndMember(roundId.toLong(),  memberId)
+        
+        if (paymentsToUpdate.isEmpty()) {
+            throw IllegalArgumentException("No payments in WAITING status found for round: $roundId, member: $memberId with ad_index=1")
+        }
+
+        val confirmedPayments = paymentsToUpdate.map { payment ->
+            val updatedPayment = OrderPayment(
+                id = payment.id,
+                order = payment.order,
+                applicationNumber = payment.applicationNumber,
+                paymentAmount = payment.paymentAmount,
+                depositorName = payment.depositorName,
+                bankAccountNumber = payment.bankAccountNumber,
+                bankName = payment.bankName,
+                paymentStatus = PaymentStatus.CONFIRMED,
+                notes = notes,
+                paymentConfirmedAt = LocalDateTime.now(),
+                createdAt = payment.createdAt,
+                updatedAt = LocalDateTime.now()
+            )
+
+            val savedPayment = orderPaymentRepository.save(updatedPayment)
+            
+            updateOrderStatus(payment.order.id!!, OrderStatusUpdateRequest(OrderStatus.PAYMENT_CONFIRMED))
+            
+            // 입금 확인 시 expense transaction 생성
+            try {
+                revenueService.createExpenseTransaction(payment.order)
+            } catch (e: Exception) {
+                logger.warn("Failed to create expense transaction for order ${payment.order.id}: ${e.message}")
+            }
+            
+            mapToOrderPaymentInfo(savedPayment)
         }
 
         return confirmedPayments
@@ -821,6 +889,24 @@ class OrderService(
                 )
             }
             
+            // Round 정보 생성
+            val roundInfo = RoundInfo(
+                id = order.adTask.round.id!!,
+                title = order.adTask.round.title,
+                description = order.adTask.round.description,
+                category = order.adTask.round.category,
+                orderAmount = order.adTask.round.orderAmount,
+                status = order.adTask.round.status,
+                startDate = order.adTask.round.startDate?.toLocalDate(),
+                endDate = order.adTask.round.endDate?.toLocalDate(),
+                postStartDate = order.adTask.round.postStartDate?.toLocalDate(),
+                postEndDate = order.adTask.round.postEndDate?.toLocalDate(),
+                postDurationDays = order.adTask.round.postDurationDays,
+                maxParticipants = order.adTask.round.maxParticipants,
+                currentParticipants = orderRepository.countByRoundId(order.adTask.round.id!!).toInt(),
+                roundNumber = order.adTask.round.roundNumber
+            )
+
             OrderResponse(
                 id = order.id!!,
                 orderNumber = order.orderNumber,
@@ -846,7 +932,8 @@ class OrderService(
                 createdAt = order.createdAt,
                 updatedAt = order.updatedAt,
                 paymentInfo = paymentInfo,
-                roundParticipants = null
+                roundParticipants = null,
+                roundInfo = roundInfo
             )
         }
     }
@@ -928,6 +1015,24 @@ class OrderService(
                 )
             }
             
+            // Round 정보 생성
+            val roundInfo = RoundInfo(
+                id = order.adTask.round.id!!,
+                title = order.adTask.round.title,
+                description = order.adTask.round.description,
+                category = order.adTask.round.category,
+                orderAmount = order.adTask.round.orderAmount,
+                status = order.adTask.round.status,
+                startDate = order.adTask.round.startDate?.toLocalDate(),
+                endDate = order.adTask.round.endDate?.toLocalDate(),
+                postStartDate = order.adTask.round.postStartDate?.toLocalDate(),
+                postEndDate = order.adTask.round.postEndDate?.toLocalDate(),
+                postDurationDays = order.adTask.round.postDurationDays,
+                maxParticipants = order.adTask.round.maxParticipants,
+                currentParticipants = orderRepository.countByRoundId(order.adTask.round.id!!).toInt(),
+                roundNumber = order.adTask.round.roundNumber
+            )
+
             OrderResponse(
                 id = order.id!!,
                 orderNumber = order.orderNumber,
@@ -953,7 +1058,8 @@ class OrderService(
                 createdAt = order.createdAt,
                 updatedAt = order.updatedAt,
                 paymentInfo = paymentInfo,
-                roundParticipants = null
+                roundParticipants = null,
+                roundInfo = roundInfo
             )
         }
     }
@@ -1010,6 +1116,24 @@ class OrderService(
                 )
             }
             
+            // Round 정보 생성
+            val roundInfo = RoundInfo(
+                id = order.adTask.round.id!!,
+                title = order.adTask.round.title,
+                description = order.adTask.round.description,
+                category = order.adTask.round.category,
+                orderAmount = order.adTask.round.orderAmount,
+                status = order.adTask.round.status,
+                startDate = order.adTask.round.startDate?.toLocalDate(),
+                endDate = order.adTask.round.endDate?.toLocalDate(),
+                postStartDate = order.adTask.round.postStartDate?.toLocalDate(),
+                postEndDate = order.adTask.round.postEndDate?.toLocalDate(),
+                postDurationDays = order.adTask.round.postDurationDays,
+                maxParticipants = order.adTask.round.maxParticipants,
+                currentParticipants = orderRepository.countByRoundId(order.adTask.round.id!!).toInt(),
+                roundNumber = order.adTask.round.roundNumber
+            )
+
             OrderResponse(
                 id = order.id!!,
                 orderNumber = order.orderNumber,
@@ -1035,7 +1159,8 @@ class OrderService(
                 createdAt = order.createdAt,
                 updatedAt = order.updatedAt,
                 paymentInfo = paymentInfo,
-                roundParticipants = null
+                roundParticipants = null,
+                roundInfo = roundInfo
             )
         }
     }

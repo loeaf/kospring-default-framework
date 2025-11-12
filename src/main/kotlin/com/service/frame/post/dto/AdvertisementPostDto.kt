@@ -31,6 +31,7 @@ data class MyAssignedPostResponse(
     val advertiserEmail: String,
     val advertiserCompanyName: String?,
     val adTaskId: Long,
+    val webUrl: String?,
     val revenuePerPost: BigDecimal,
     val assignmentStatus: String,
     val postContent: String?,
@@ -81,6 +82,7 @@ data class AssignmentInfo(
     val publisherEmail: String,
     val publisherCompanyName: String?,
     val adTaskId: Long,
+    val webUrl: String?,
     val revenuePerPost: BigDecimal,
     val assignmentStatus: String
 )

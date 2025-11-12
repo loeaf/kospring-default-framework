@@ -38,6 +38,7 @@ class AdvertisementPostService(
                 advertiserEmail = post.assignment?.advertiserMember?.email ?: "",
                 advertiserCompanyName = post.assignment?.advertiserMember?.companyName ?: "",
                 adTaskId = post.assignment?.adTask?.id ?: 0,
+                webUrl = post.assignment?.adTask?.webUrl,
                 revenuePerPost = post.assignment?.revenuePerPost ?: BigDecimal.ZERO,
                 assignmentStatus = post.assignment?.assignmentStatus?.name ?: "",
                 postContent = post.content,
@@ -85,7 +86,7 @@ class AdvertisementPostService(
         val updatedPost = post.copy(
             content = request.content,
             notes = request.notes,
-            postStatus = AdvertisementPostStatus.PENDING, // 내용 수정 시 다시 PENDING 상태로
+            postStatus = AdvertisementPostStatus.PUBLISHED,
             updatedAt = LocalDateTime.now()
         )
         
@@ -94,9 +95,9 @@ class AdvertisementPostService(
         // Assignment 상태 업데이트 (최초 작성 vs 수정 구분)
         savedPost.assignment?.let { assignment ->
             val newAssignmentStatus = if (post.content.isNullOrBlank()) {
-                com.service.frame.post.entity.AssignmentStatus.WRITTEN
+                com.service.frame.post.entity.AssignmentStatus.COMPLETED
             } else {
-                com.service.frame.post.entity.AssignmentStatus.WRITTEN
+                com.service.frame.post.entity.AssignmentStatus.COMPLETED
             }
             
             val updatedAssignment = assignment.copy(
@@ -201,6 +202,7 @@ class AdvertisementPostService(
                 advertiserEmail = post.assignment?.advertiserMember?.email ?: "",
                 advertiserCompanyName = post.assignment?.advertiserMember?.companyName ?: "",
                 adTaskId = post.assignment?.adTask?.id ?: 0,
+                webUrl = post.assignment?.adTask?.webUrl,
                 revenuePerPost = post.assignment?.revenuePerPost ?: BigDecimal.ZERO,
                 assignmentStatus = post.assignment?.assignmentStatus?.name ?: "",
                 postContent = post.content,
@@ -301,6 +303,7 @@ class AdvertisementPostService(
                 publisherEmail = post.assignment?.publisherMember?.email ?: "",
                 publisherCompanyName = post.assignment?.publisherMember?.companyName ?: "",
                 adTaskId = post.assignment?.adTask?.id ?: 0,
+                webUrl = post.assignment?.adTask?.webUrl,
                 revenuePerPost = post.assignment?.revenuePerPost ?: BigDecimal.ZERO,
                 assignmentStatus = post.assignment?.assignmentStatus?.name ?: ""
             ),
