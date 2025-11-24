@@ -17,7 +17,8 @@ import org.springframework.transaction.annotation.Transactional
 class AdQueueService(
     private val redisTemplate: RedisTemplate<String, Any>,
     private val adTaskRepository: AdTaskRepository,
-    private val objectMapper: ObjectMapper
+    private val objectMapper: ObjectMapper,
+    private val adProperties: com.service.frame.config.AdProperties
 ) {
     
     private val logger = LoggerFactory.getLogger(AdQueueService::class.java)
@@ -32,19 +33,23 @@ class AdQueueService(
      * 라운드와 모든 활성 회원에 대해 광고 생성 작업을 큐에 추가
      */
     fun enqueueAdGenerationTasks(round: Round, members: List<Member>) {
-        logger.info("라운드 ${round.id}에 대해 ${members.size}개의 광고 생성 작업을 큐에 추가 시작")
+        val totalTasks = members.size * adProperties.count
+        logger.info("라운드 ${round.id}에 대해 ${members.size}명의 회원 × ${adProperties.count}개 = ${totalTasks}개의 광고 생성 작업을 큐에 추가 시작")
         
         members.forEach { member ->
             try {
-                // AdTask 엔티티 생성 및 저장
-                val adTask = createAdTask(round, member)
-                val savedTask = adTaskRepository.save(adTask)
-                
-                // Redis 큐에 작업 메시지 추가
-                val taskMessage = createAdTaskMessage(savedTask)
-                enqueueMessage(AD_GENERATION_QUEUE, taskMessage)
-                
-                logger.debug("회원 ${member.id}에 대한 광고 생성 작업이 큐에 추가됨 (Task ID: ${savedTask.id})")
+                // 설정된 count만큼 각 회원에 대해 작업 생성
+                repeat(adProperties.count) { index ->
+                    val adIndex = index + 1 // 1부터 시작
+                    val adTask = createAdTask(round, member, adIndex)
+                    val savedTask = adTaskRepository.save(adTask)
+                    
+                    // Redis 큐에 작업 메시지 추가
+                    val taskMessage = createAdTaskMessage(savedTask)
+                    enqueueMessage(AD_GENERATION_QUEUE, taskMessage)
+                    
+                    logger.debug("회원 ${member.id}에 대한 광고 생성 작업이 큐에 추가됨 (Task ID: ${savedTask.id}, ad_index: $adIndex)")
+                }
                 
             } catch (e: Exception) {
                 logger.error("회원 ${member.id}에 대한 광고 생성 작업 큐 추가 실패", e)
@@ -55,19 +60,26 @@ class AdQueueService(
     }
 
     /**
-     * 단일 광고 생성 작업을 큐에 추가
+     * 단일 회원에 대한 광고 생성 작업들을 큐에 추가
      */
-    fun enqueueAdGenerationTask(round: Round, member: Member): AdTask {
-        logger.info("라운드 ${round.id}, 회원 ${member.id}에 대한 광고 생성 작업을 큐에 추가")
+    fun enqueueAdGenerationTask(round: Round, member: Member): List<AdTask> {
+        logger.info("라운드 ${round.id}, 회원 ${member.id}에 대한 ${adProperties.count}개의 광고 생성 작업을 큐에 추가")
         
-        val adTask = createAdTask(round, member)
-        val savedTask = adTaskRepository.save(adTask)
+        val savedTasks = mutableListOf<AdTask>()
         
-        val taskMessage = createAdTaskMessage(savedTask)
-        enqueueMessage(AD_GENERATION_QUEUE, taskMessage)
+        repeat(adProperties.count) { index ->
+            val adIndex = index + 1 // 1부터 시작
+            val adTask = createAdTask(round, member, adIndex)
+            val savedTask = adTaskRepository.save(adTask)
+            savedTasks.add(savedTask)
+            
+            val taskMessage = createAdTaskMessage(savedTask)
+            enqueueMessage(AD_GENERATION_QUEUE, taskMessage)
+            
+            logger.info("광고 생성 작업이 큐에 추가됨 (Task ID: ${savedTask.id}, ad_index: $adIndex)")
+        }
         
-        logger.info("광고 생성 작업이 큐에 추가됨 (Task ID: ${savedTask.id})")
-        return savedTask
+        return savedTasks
     }
 
     /**
@@ -89,8 +101,8 @@ class AdQueueService(
         )
         adTaskRepository.save(updatedTask)
         
-        // 재시도 횟수가 3회 미만인 경우에만 다시 큐에 추가
-        if (updatedTask.retryCount < 3) {
+        // 재시도 횟수가 설정된 최대값 미만인 경우에만 다시 큐에 추가
+        if (updatedTask.retryCount < adProperties.maxRetryCount) {
             val taskMessage = createAdTaskMessage(updatedTask)
             enqueueMessage(AD_GENERATION_QUEUE, taskMessage)
             logger.info("작업이 재시도 큐에 추가됨 (Task ID: $taskId, 시도 횟수: ${updatedTask.retryCount})")
@@ -160,11 +172,12 @@ class AdQueueService(
         return enqueuedCount
     }
 
-    private fun createAdTask(round: Round, member: Member): AdTask {
+    private fun createAdTask(round: Round, member: Member, adIndex: Int = 1): AdTask {
         return AdTask(
             round = round,
             member = member,
-            status = AdTaskStatus.PENDING
+            status = AdTaskStatus.PENDING,
+            adIndex = adIndex
         )
     }
 
@@ -197,7 +210,10 @@ class AdQueueService(
                 email = adTask.member.email,
                 companyName = adTask.member.companyName,
                 businessRegistrationNumber = adTask.member.businessRegistrationNumber,
-                contactNumber = adTask.member.contactNumber
+                contactNumber = adTask.member.contactNumber,
+                businessField = adTask.member.businessField,
+                companyDescription = adTask.member.companyDescription,
+                productDescription = adTask.member.productDescription
             )
         )
     }
@@ -226,7 +242,10 @@ class AdQueueService(
                     "email" to message.memberInfo.email,
                     "companyName" to (message.memberInfo.companyName ?: ""),
                     "contactNumber" to (message.memberInfo.contactNumber ?: ""),
-                    "businessRegistrationNumber" to (message.memberInfo.businessRegistrationNumber ?: "")
+                    "businessRegistrationNumber" to (message.memberInfo.businessRegistrationNumber ?: ""),
+                    "businessField" to (message.memberInfo.businessField ?: ""),
+                    "companyDescription" to (message.memberInfo.companyDescription ?: ""),
+                    "productDescription" to (message.memberInfo.productDescription ?: "")
                 ),
                 "timestamp" to System.currentTimeMillis()
             )

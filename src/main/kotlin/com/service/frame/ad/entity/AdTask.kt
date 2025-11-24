@@ -56,6 +56,9 @@ data class AdTask(
     @Column(name = "ad_type")
     val adType: String? = null,
 
+    @Column(name = "description")
+    val description: String? = null,
+
     @Column(name = "ad_index")
     val adIndex: Int? = null
 )

@@ -27,6 +27,12 @@ data class CompleteRegistrationRequest(
     // 임대권 정보
     val durationYears: Int = 1,
     
+    // 정산 계좌 정보
+    val bankCode: String = "",
+    val bankName: String = "",
+    val accountNumber: String = "",
+    val accountHolder: String = "",
+    
     // 기타
     val ipAddress: String? = null,
     val userAgent: String? = null

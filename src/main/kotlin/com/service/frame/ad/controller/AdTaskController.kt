@@ -8,6 +8,7 @@ import com.service.frame.ad.entity.AdTaskStatus
 import com.service.frame.ad.service.AdQueueService
 import com.service.frame.ad.service.AdTaskService
 import com.service.frame.round.repository.RoundRepository
+import com.service.frame.member.repository.MemberRepository
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
 
@@ -16,7 +17,8 @@ import org.springframework.web.bind.annotation.*
 class AdTaskController(
     private val adQueueService: AdQueueService,
     private val adTaskService: AdTaskService,
-    private val roundRepository: RoundRepository
+    private val roundRepository: RoundRepository,
+    private val memberRepository: MemberRepository
 ) {
 
     /**
@@ -86,6 +88,108 @@ class AdTaskController(
     fun getMemberAdPreviews(@PathVariable memberId: Long): ResponseEntity<AdPreviewResponse> {
         val result = adTaskService.getMemberAdPreviews(memberId)
         return ResponseEntity.ok(result)
+    }
+
+    /**
+     * 특정 사용자의 특정 광고 미리보기 조회 (권한 확인 포함)
+     */
+    @GetMapping("/members/{memberId}/ads/{adId}/preview")
+    fun getAdTaskPreviewByMember(
+        @PathVariable memberId: Long,
+        @PathVariable adId: Long
+    ): ResponseEntity<Any> {
+        return try {
+            // 해당 사용자의 광고인지 확인
+            val adTask = adTaskService.getMemberAdTask(memberId, adId)
+            
+            // 회원 정보 조회
+            val member = memberRepository.findById(memberId).orElse(null)
+                ?: throw IllegalArgumentException("Member not found with id: $memberId")
+            
+            val previewData = mapOf(
+                "id" to adTask.id,
+                "title" to "${adTask.roundTitle} - 광고",
+                "description" to "라운드: ${adTask.roundTitle}",
+                "status" to when (adTask.status) {
+                    AdTaskStatus.PENDING -> "대기중"
+                    AdTaskStatus.PROCESSING -> "처리중"
+                    AdTaskStatus.COMPLETED -> "완료"
+                    AdTaskStatus.FAILED -> "실패"
+                    AdTaskStatus.RETRY -> "재시도"
+                },
+                "tags" to listOf("광고", adTask.memberCompanyName, adTask.roundTitle),
+                "client" to adTask.memberCompanyName,
+                "publisher" to adTask.memberCompanyName,
+                "category" to "마케팅 광고",
+                "htmlPath" to adTask.webUrl,
+                "previewHeight" to "600px",
+                "webUrl" to adTask.webUrl,
+                "price" to 0,
+                "createdAt" to adTask.createdAt,
+                "roundId" to adTask.roundId,
+                "member" to mapOf(
+                    "id" to member.id,
+                    "email" to member.email,
+                    "companyName" to member.companyName,
+                    "businessRegistrationNumber" to member.businessRegistrationNumber,
+                    "contactNumber" to member.contactNumber,
+                    "businessField" to member.businessField,
+                    "productDescription" to member.productDescription,
+                    "companyDescription" to member.companyDescription,
+                    "isPremium" to member.isPremium,
+                    "rentalStatus" to member.rentalStatus.name,
+                    "currentRentalExpiry" to member.currentRentalExpiry
+                )
+            )
+            ResponseEntity.ok(previewData)
+        } catch (e: IllegalArgumentException) {
+            when {
+                e.message?.contains("not found") == true -> 
+                    ResponseEntity.notFound().build()
+                e.message?.contains("does not belong") == true -> 
+                    ResponseEntity.status(403).body(mapOf("error" to "해당 광고에 대한 접근 권한이 없습니다."))
+                else -> 
+                    ResponseEntity.badRequest().body(mapOf("error" to e.message))
+            }
+        } catch (e: Exception) {
+            ResponseEntity.internalServerError().body(mapOf("error" to "서버 오류가 발생했습니다."))
+        }
+    }
+
+    /**
+     * 공개 광고 미리보기 조회 (완료된 광고만)
+     */
+    @GetMapping("/{adId}/preview")
+    fun getPublicAdTaskPreview(@PathVariable adId: Long): ResponseEntity<Any> {
+        return try {
+            val adTask = adTaskService.getAdTaskById(adId)
+            
+            // 완료된 광고만 공개 조회 가능
+            if (adTask.status != AdTaskStatus.COMPLETED) {
+                return ResponseEntity.status(403).body(mapOf("error" to "완료되지 않은 광고는 조회할 수 없습니다."))
+            }
+            
+            val previewData = mapOf(
+                "id" to adTask.id,
+                "title" to "${adTask.roundTitle} 광고",
+                "description" to "라운드: ${adTask.roundTitle}",
+                "status" to "완료",
+                "tags" to listOf("광고", adTask.roundTitle),
+                "client" to "***", // 개인정보 보호
+                "publisher" to "***", // 개인정보 보호  
+                "category" to "마케팅 광고",
+                "htmlPath" to adTask.webUrl,
+                "previewHeight" to "600px",
+                "webUrl" to adTask.webUrl,
+                "price" to 0,
+                "createdAt" to adTask.createdAt
+            )
+            ResponseEntity.ok(previewData)
+        } catch (e: IllegalArgumentException) {
+            ResponseEntity.notFound().build()
+        } catch (e: Exception) {
+            ResponseEntity.internalServerError().body(mapOf("error" to "서버 오류가 발생했습니다."))
+        }
     }
 
     /**

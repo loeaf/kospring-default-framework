@@ -596,21 +596,22 @@ class OrderService(
         val round = roundRepository.findById(roundId.toLong()).orElse(null)
             ?: throw IllegalArgumentException("Round not found with id: $roundId")
         
-        val adTasks = adTaskRepository.findByRoundAndAdIndex(round, 1)
-        if (adTasks.isEmpty()) {
-            throw IllegalArgumentException("No AdTask with ad_index=1 found for round: $roundId")
+        // 해당 라운드의 모든 Order 조회 (AdTask를 통하지 않고 직접 조회)
+        val orders = orderRepository.findByRoundId(roundId.toLong())
+        if (orders.isEmpty()) {
+            throw IllegalArgumentException("No orders found for round: $roundId")
         }
 
-        val payments = adTasks.mapNotNull { adTask ->
-            val order = orderRepository.findByAdTaskId(adTask.id!!)
-            
-            if (order == null) {
-                println("Warning: Order not found for AdTask with id: ${adTask.id}")
+        val payments = orders.mapNotNull { order ->
+            // 이미 결제가 있는 주문은 건너뛰기
+            val existingPayment = orderPaymentRepository.findByOrderId(order.id!!)
+            if (existingPayment != null) {
+                logger.info("Order ${order.id} already has payment (${existingPayment.applicationNumber}). Skipping.")
                 return@mapNotNull null
             }
-
+            
             if (order.status != OrderStatus.PENDING) {
-                println("Warning: Order ${order.id} is not in PENDING status. Current status: ${order.status}")
+                logger.warn("Order ${order.id} is not in PENDING status. Current status: ${order.status}. Skipping.")
                 return@mapNotNull null
             }
 
@@ -634,9 +635,17 @@ class OrderService(
         }
 
         if (payments.isEmpty()) {
-            throw IllegalStateException("No valid orders found to create payments for round: $roundId")
+            val totalOrders = orders.size
+            val ordersWithPayments = orders.count { order ->
+                orderPaymentRepository.findByOrderId(order.id!!) != null
+            }
+            val pendingOrders = orders.count { it.status == OrderStatus.PENDING }
+            
+            logger.warn("No new payments created for round $roundId. Total orders: $totalOrders, Orders with existing payments: $ordersWithPayments, Pending orders: $pendingOrders")
+            throw IllegalStateException("No valid orders found to create payments for round: $roundId. All orders either already have payments or are not in PENDING status.")
         }
 
+        logger.info("Created ${payments.size} payments for round $roundId")
         return payments
     }
 

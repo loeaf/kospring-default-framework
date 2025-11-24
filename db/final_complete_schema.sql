@@ -281,6 +281,7 @@ CREATE TABLE revenue_transactions (
 CREATE TABLE settlement_accounts (
     id BIGSERIAL PRIMARY KEY,
     member_id BIGINT NOT NULL REFERENCES members(id) ON DELETE CASCADE COMMENT '회원 ID',
+    bank_code VARCHAR(20) NOT NULL COMMENT '은행 코드',
     bank_name VARCHAR(100) NOT NULL COMMENT '은행명',
     account_number VARCHAR(50) NOT NULL COMMENT '계좌번호',
     account_holder VARCHAR(100) NOT NULL COMMENT '예금주',

@@ -15,6 +15,7 @@ import com.service.frame.round.repository.RoundRepository
 import com.service.frame.member.repository.MemberRepository
 import com.service.frame.order.repository.OrderRepository
 import com.service.frame.post.repository.AdvertisementAssignmentRepository
+import com.service.frame.post.repository.AdvertisementPostRepository
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -27,7 +28,9 @@ class AdTaskService(
     private val roundRepository: RoundRepository,
     private val memberRepository: MemberRepository,
     private val orderRepository: OrderRepository,
-    private val assignmentRepository: AdvertisementAssignmentRepository
+    private val assignmentRepository: AdvertisementAssignmentRepository,
+    private val advertisementPostRepository: AdvertisementPostRepository,
+    private val adProperties: com.service.frame.config.AdProperties
 ) {
     private val logger = LoggerFactory.getLogger(AdTaskService::class.java)
 
@@ -243,10 +246,9 @@ class AdTaskService(
             val member = memberRepository.findById(memberId).orElse(null)
                 ?: throw IllegalArgumentException("Member not found with id: $memberId")
 
-            val adTypes = listOf("scratch", "carousel", "interactive")
-            
-            adTypes.forEachIndexed { index, adType ->
-                val adIndex = index + 1
+            // 설정된 개수만큼 광고 생성
+            for (adIndex in 1..adProperties.count) {
+                val adType = "ad_type_$adIndex"
                 val key = "${request.roundId}_${memberId}_${adType}_${adIndex}"
                 
                 // 이미 존재하는 조합은 건너뛰기
@@ -267,7 +269,7 @@ class AdTaskService(
                         )
                         allAdTasks.add(adTaskRepository.save(updatedTask))
                     }
-                    return@forEachIndexed
+                    continue
                 }
                 
                 val timestamp = System.currentTimeMillis() / 1000
@@ -308,14 +310,17 @@ class AdTaskService(
             val advertiser = assignment.advertiserMember ?: return@mapNotNull null
             val publisher = assignment.publisherMember ?: return@mapNotNull null
             
+            // 실제 게시된 광고 포스트만 조회 (없으면 제외)
+            val advertisementPost = advertisementPostRepository.findByAssignmentId(assignment.id!!) ?: return@mapNotNull null
+            
             AdPreviewItem(
                 id = "ad_${task.id}",
                 title = MultiLanguageText(
-                    ko = "${round.title} - ${task.adType}",
+                    ko = "${round.title}",
                     en = ""
                 ),
                 description = MultiLanguageText(
-                    ko = round.description ?: "광고 설명이 없습니다.",
+                    ko = task.description ?: "",
                     en = ""
                 ),
                 client = MultiLanguageText(
@@ -330,13 +335,8 @@ class AdTaskService(
                 htmlPath = task.webUrl ?: "",
                 previewHeight = "600px",
                 category = round.category ?: "general",
-                status = when (task.status) {
-                    AdTaskStatus.PENDING -> "대기중"
-                    AdTaskStatus.PROCESSING -> "처리중"
-                    AdTaskStatus.COMPLETED -> "완료"
-                    AdTaskStatus.FAILED -> "실패"
-                    AdTaskStatus.RETRY -> "재시도"
-                }
+                status = advertisementPost.postStatus.name,
+                createdAt = advertisementPost.createdAt.toString()
             )
         }
         
@@ -381,14 +381,17 @@ class AdTaskService(
             val advertiser = assignment.advertiserMember ?: return@mapNotNull null
             val publisher = assignment.publisherMember ?: return@mapNotNull null
             
+            // 실제 게시된 광고 포스트만 조회 (없으면 제외)
+            val advertisementPost = advertisementPostRepository.findByAssignmentId(assignment.id!!) ?: return@mapNotNull null
+            
             AdPreviewItem(
                 id = "ad_${task.id}",
                 title = MultiLanguageText(
-                    ko = "${round.title} - ${task.adType}",
+                    ko = "${round.title}",
                     en = ""
                 ),
                 description = MultiLanguageText(
-                    ko = round.description ?: "광고 설명이 없습니다.",
+                    ko = task.description ?: "",
                     en = ""
                 ),
                 client = MultiLanguageText(
@@ -403,13 +406,8 @@ class AdTaskService(
                 htmlPath = task.webUrl ?: "",
                 previewHeight = "600px",
                 category = round.category ?: "general",
-                status = when (task.status) {
-                    AdTaskStatus.PENDING -> "대기중"
-                    AdTaskStatus.PROCESSING -> "처리중"
-                    AdTaskStatus.COMPLETED -> "완료"
-                    AdTaskStatus.FAILED -> "실패"
-                    AdTaskStatus.RETRY -> "재시도"
-                }
+                status = advertisementPost.postStatus.name,
+                createdAt = advertisementPost.createdAt.toString()
             )
         }
         
@@ -454,7 +452,7 @@ class AdTaskService(
         val newMembers = allActiveMembers.filter { member ->
             val memberTasks = existingTasks.filter { it.member.id == member.id }
             val existingIndexes = memberTasks.mapNotNull { it.adIndex }.toSet()
-            val requiredIndexes = setOf(1, 2, 3)
+            val requiredIndexes = (1..adProperties.count).toSet()
             
             // 필요한 인덱스가 모두 없는 경우에만 신규 회원으로 간주
             !requiredIndexes.all { existingIndexes.contains(it) }
@@ -475,8 +473,8 @@ class AdTaskService(
             val memberTasks = existingTasks.filter { it.member.id == member.id }
             val existingIndexes = memberTasks.mapNotNull { it.adIndex }.toSet()
             
-            // 1, 2, 3 인덱스별로 확인하여 누락된 것만 생성
-            for (adIndex in 1..3) {
+            // 설정된 광고 개수만큼 인덱스별로 확인하여 누락된 것만 생성
+            for (adIndex in 1..adProperties.count) {
                 // 이미 존재하는 인덱스는 건너뛰기
                 if (existingIndexes.contains(adIndex)) {
                     logger.info("AdTask already exists for round $roundId, member ${member.id}, index $adIndex - skipping")

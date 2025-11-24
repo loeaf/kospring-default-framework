@@ -20,6 +20,9 @@ interface OrderPaymentRepository : JpaRepository<OrderPayment, Long> {
     @Query("SELECT op FROM OrderPayment op WHERE op.order.id = :orderId ORDER BY op.createdAt DESC")
     fun findByOrderIdOrderByCreatedAtDesc(@Param("orderId") orderId: Long): List<OrderPayment>
     
+    @Query("SELECT op FROM OrderPayment op WHERE op.order.id = :orderId")
+    fun findByOrderId(@Param("orderId") orderId: Long): OrderPayment?
+    
     @Query("SELECT op FROM OrderPayment op WHERE op.order.member.id = :memberId ORDER BY op.createdAt DESC")
     fun findByMemberIdOrderByCreatedAtDesc(@Param("memberId") memberId: Long): List<OrderPayment>
     

@@ -82,5 +82,14 @@ data class MemberInfo(
     val businessRegistrationNumber: String,
     
     @JsonProperty("contactNumber")
-    val contactNumber: String
+    val contactNumber: String,
+    
+    @JsonProperty("businessField")
+    val businessField: String,
+    
+    @JsonProperty("companyDescription")
+    val companyDescription: String,
+    
+    @JsonProperty("productDescription")
+    val productDescription: String
 )

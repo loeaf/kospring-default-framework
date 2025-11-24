@@ -3,7 +3,9 @@ package com.service.frame.member.service
 import com.service.frame.member.dto.*
 import com.service.frame.member.entity.Member
 import com.service.frame.member.entity.RentalStatus
+import com.service.frame.member.entity.SettlementAccount
 import com.service.frame.member.repository.MemberRepository
+import com.service.frame.member.repository.SettlementAccountRepository
 import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -16,7 +18,8 @@ class MemberService(
     private val passwordEncoder: PasswordEncoder,
     private val contractService: ContractService,
     private val rentalRightsService: RentalRightsService,
-    private val emailVerificationService: EmailVerificationService
+    private val emailVerificationService: EmailVerificationService,
+    private val settlementAccountRepository: SettlementAccountRepository
 ) {
 
     fun registerMember(request: MemberRegistrationRequest): MemberRegistrationResponse {
@@ -213,6 +216,21 @@ class MemberService(
                 currentRentalExpiry = rentalResponse.expiryDate
             )
             memberRepository.save(updatedMember)
+            
+            // 5. 정산 계좌 정보 저장
+            if (request.bankCode.isNotBlank() && request.bankName.isNotBlank() && 
+                request.accountNumber.isNotBlank() && request.accountHolder.isNotBlank()) {
+                val settlementAccount = SettlementAccount(
+                    member = updatedMember,
+                    bankCode = request.bankCode,
+                    bankName = request.bankName,
+                    accountNumber = request.accountNumber,
+                    accountHolder = request.accountHolder,
+                    isDefault = true,  // 회원가입시 등록하는 계좌는 기본 계좌로 설정
+                    isActive = true
+                )
+                settlementAccountRepository.save(settlementAccount)
+            }
 
             return CompleteRegistrationResponse(
                 success = true,

@@ -156,4 +156,7 @@ interface OrderRepository : JpaRepository<Order, Long> {
     
     @Query("SELECT COUNT(o) FROM Order o WHERE o.adTask.round.id = :roundId")
     fun countByRoundId(@Param("roundId") roundId: Long): Long
+    
+    @Query("SELECT o FROM Order o WHERE o.adTask.round.id = :roundId ORDER BY o.submittedAt")
+    fun findByRoundId(@Param("roundId") roundId: Long): List<Order>
 }

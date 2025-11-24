@@ -140,7 +140,11 @@ class MemberController(
         @RequestParam serviceContractAgreed: Boolean,
         @RequestParam(defaultValue = "false") marketingAgreed: Boolean,
         @RequestParam(defaultValue = "") pricingPreference: String,
-        @RequestParam(defaultValue = "1") durationYears: Int
+        @RequestParam(defaultValue = "1") durationYears: Int,
+        @RequestParam(defaultValue = "") bankCode: String,
+        @RequestParam(defaultValue = "") bankName: String,
+        @RequestParam(defaultValue = "") accountNumber: String,
+        @RequestParam(defaultValue = "") accountHolder: String
     ): ResponseEntity<CompleteRegistrationResponse> {
         return try {
             val request = CompleteRegistrationRequest(
@@ -159,7 +163,11 @@ class MemberController(
                 serviceContractAgreed = serviceContractAgreed,
                 marketingAgreed = marketingAgreed,
                 pricingPreference = pricingPreference,
-                durationYears = durationYears
+                durationYears = durationYears,
+                bankCode = bankCode,
+                bankName = bankName,
+                accountNumber = accountNumber,
+                accountHolder = accountHolder
             )
 
             val response = memberService.completeRegistration(request)
